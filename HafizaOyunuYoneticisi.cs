@@ -1,0 +1,240 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using TMPro; // TextMeshPro kullanmak için bu şart!
+
+public class HafizaOyunuYoneticisi : MonoBehaviour
+{
+    [Header("Sahne Kurulumu")]
+    public GameObject kartPrefab;      
+    public Transform kartMasasi;       
+    public GameObject tebriklerPaneli;     // YENİ: Bitiş ekranı
+    public GameObject hafizaOyunuPaneli;   // YENİ: Çıkışta kapatmak için
+    public GameObject oyunSecimGrubu;      // YENİ: Çıkışta açmak için
+
+    [Header("UI Yazıları (TMP)")]
+    public TextMeshProUGUI sureYazisi;            // YENİ: Sağ paneldeki süre
+    public TextMeshProUGUI enIyiSureYazisi;       // YENİ: Sağ paneldeki rekor
+    public TextMeshProUGUI tebriklerSureYazisi;   // YENİ: Bitiş ekranındaki skor
+    public TextMeshProUGUI tebriklerBaslikYazisi; // YENİ: "TEBRİKLER!" yazısı
+    public TextMeshProUGUI tebriklerButonYazisi;  // YENİ: "DEVAM" butonu yazısı
+
+    [Header("Hayvan Listesi (8 Tane Sürükle)")]
+    public Sprite[] hayvanGorselleri;
+
+    [Header("Ses Efektleri")]
+    public AudioSource sesKaynagi;
+    public AudioClip kartAcmaSesi;
+    public AudioClip dogruEslesmeSesi;
+    public AudioClip yanlisEslesmeSesi;
+    public AudioClip oyunBittiSesi; // YENİ: İsteğe bağlı alkış/zafer sesi
+
+    private List<Kart> masadakiKartlar = new List<Kart>();
+    private Kart ilkSecilenKart;
+    private Kart ikinciSecilenKart;
+    private bool kontrolEdiliyor = false;
+
+    // --- YENİ DEĞİŞKENLER ---
+    private int eslesenCiftSayisi = 0;
+    private float gecenSure = 0f;
+    private bool oyunDevamEdiyor = false;
+    private float enIyiSure = 0f;
+
+    void Start()
+    {
+        // Unity hafızasından eski rekoru çek (Eğer hiç rekor yoksa 0 gelir)
+        enIyiSure = PlayerPrefs.GetFloat("HafizaEnIyiSure", 0f);
+        EnIyiSureyiEkranaYaz();
+    }
+
+    void Update()
+    {
+        // Oyun başladıysa sayacı saniye saniye akıt
+        if (oyunDevamEdiyor)
+        {
+            gecenSure += Time.deltaTime;
+            if (sureYazisi != null)
+            {
+                // YENİ: Dil İngilizce mi Türkçe mi kontrol et! (Türkçe: SN, İngilizce: S)
+                string sureKelimesi = MenuYoneticisi.turkceMi ? "SÜRE" : "TIME";
+                string saniyeKisaltma = MenuYoneticisi.turkceMi ? " SN" : " S";
+                
+                sureYazisi.text = sureKelimesi + "\n" + gecenSure.ToString("F1") + saniyeKisaltma;
+            }
+        }
+    }
+
+    public void OyunuBaslat()
+    {
+        MasayiTemizle();
+        KartlariDagit();
+        
+        // Değişkenleri sıfırla ve sayacı başlat
+        gecenSure = 0f;
+        eslesenCiftSayisi = 0;
+        oyunDevamEdiyor = true;
+        
+        if (tebriklerPaneli != null) tebriklerPaneli.SetActive(false);
+        
+        enIyiSure = PlayerPrefs.GetFloat("HafizaEnIyiSure", 0f);
+        EnIyiSureyiEkranaYaz();
+    }
+
+    // Bu fonksiyonu public yaptık ki dil değişince dışarıdan da çağırabilelim!
+    public void EnIyiSureyiEkranaYaz()
+    {
+        if (enIyiSureYazisi != null)
+        {
+            string rekorKelimesi = MenuYoneticisi.turkceMi ? "REKOR" : "BEST";
+            string saniyeKisaltma = MenuYoneticisi.turkceMi ? " SN" : " S";
+            
+            if (enIyiSure > 0f)
+                enIyiSureYazisi.text = rekorKelimesi + "\n" + enIyiSure.ToString("F1") + saniyeKisaltma;
+            else
+                enIyiSureYazisi.text = rekorKelimesi + "\n--";
+        }
+    }
+
+    void MasayiTemizle()
+    {
+        foreach (Transform child in kartMasasi)
+        {
+            Destroy(child.gameObject);
+        }
+        masadakiKartlar.Clear();
+        ilkSecilenKart = null;
+        ikinciSecilenKart = null;
+        kontrolEdiliyor = false;
+    }
+
+    void KartlariDagit()
+    {
+        List<int> kartIDListesi = new List<int>();
+        for (int i = 0; i < hayvanGorselleri.Length; i++)
+        {
+            kartIDListesi.Add(i); 
+            kartIDListesi.Add(i); 
+        }
+
+        for (int i = 0; i < kartIDListesi.Count; i++)
+        {
+            int temp = kartIDListesi[i];
+            int rastgeleIndex = Random.Range(i, kartIDListesi.Count);
+            kartIDListesi[i] = kartIDListesi[rastgeleIndex];
+            kartIDListesi[rastgeleIndex] = temp;
+        }
+
+        for (int i = 0; i < 16; i++)
+        {
+            GameObject yeniKartObje = Instantiate(kartPrefab, kartMasasi);
+            Kart kartScript = yeniKartObje.GetComponent<Kart>();
+            
+            int id = kartIDListesi[i];
+            kartScript.KartKur(id, hayvanGorselleri[id], this);
+            
+            kartScript.kartButonu.onClick.AddListener(() => kartScript.KartaTiklandi());
+            
+            masadakiKartlar.Add(kartScript);
+        }
+    }
+
+    public bool TiklamaMuzunmu()
+    {
+        return !kontrolEdiliyor;
+    }
+
+    public void KartSecildi(Kart secilenKart)
+    {
+        if (MenuYoneticisi.sesEfektleriAcik && kartAcmaSesi != null)
+            sesKaynagi.PlayOneShot(kartAcmaSesi);
+
+        if (ilkSecilenKart == null)
+        {
+            ilkSecilenKart = secilenKart;
+        }
+        else if (ikinciSecilenKart == null && secilenKart != ilkSecilenKart)
+        {
+            ikinciSecilenKart = secilenKart;
+            StartCoroutine(EslesmeyiKontrolEt());
+        }
+    }
+
+    IEnumerator EslesmeyiKontrolEt()
+    {
+        kontrolEdiliyor = true; 
+        yield return new WaitForSeconds(0.8f); 
+
+        if (ilkSecilenKart.kartID == ikinciSecilenKart.kartID)
+        {
+            // DOĞRU EŞLEŞME!
+            if (MenuYoneticisi.sesEfektleriAcik && dogruEslesmeSesi != null)
+                sesKaynagi.PlayOneShot(dogruEslesmeSesi);
+
+            ilkSecilenKart.KartiYokEt();
+            ikinciSecilenKart.KartiYokEt();
+
+            // YENİ: Eşleşme sayısını artır. 8 çift eşleştiyse oyun bitmiştir!
+            eslesenCiftSayisi++;
+            if (eslesenCiftSayisi >= 8)
+            {
+                StartCoroutine(OyunuBitir());
+            }
+        }
+        else
+        {
+            // YANLIŞ EŞLEŞME!
+            if (MenuYoneticisi.sesEfektleriAcik && yanlisEslesmeSesi != null)
+                sesKaynagi.PlayOneShot(yanlisEslesmeSesi);
+
+            ilkSecilenKart.KartiKapat();
+            ikinciSecilenKart.KartiKapat();
+        }
+
+        ilkSecilenKart = null;
+        ikinciSecilenKart = null;
+        kontrolEdiliyor = false;
+    }
+
+    IEnumerator OyunuBitir()
+    {
+        oyunDevamEdiyor = false; // Sayacı durdur!
+        yield return new WaitForSeconds(0.5f); // Son kart yok olsun diye yarım saniye bekle
+
+        if (MenuYoneticisi.sesEfektleriAcik && oyunBittiSesi != null)
+            sesKaynagi.PlayOneShot(oyunBittiSesi);
+
+        // Rekor Kontrolü: Daha önce rekor yoksa VEYA bu süre eski rekordan daha kısaysa yeni rekor!
+        if (enIyiSure == 0f || gecenSure < enIyiSure)
+        {
+            enIyiSure = gecenSure;
+            PlayerPrefs.SetFloat("HafizaEnIyiSure", enIyiSure); // Telefona/bilgisayara kaydet
+            PlayerPrefs.Save();
+            EnIyiSureyiEkranaYaz();
+        }
+
+        // --- YENİ EKLENEN KISIM: TEBRİKLER EKRANINI DİLE GÖRE ÇEVİR! ---
+        if (tebriklerBaslikYazisi != null)
+            tebriklerBaslikYazisi.text = MenuYoneticisi.turkceMi ? "TEBRİKLER!" : "CONGRATULATIONS!";
+
+        if (tebriklerButonYazisi != null)
+            tebriklerButonYazisi.text = MenuYoneticisi.turkceMi ? "DEVAM" : "CONTINUE";
+
+        if (tebriklerSureYazisi != null)
+        {
+            string sureMetni = MenuYoneticisi.turkceMi ? "SÜRENİZ: " : "YOUR TIME: ";
+            string saniyeMetni = MenuYoneticisi.turkceMi ? " SANİYE!" : " SECONDS!";
+            tebriklerSureYazisi.text = sureMetni + gecenSure.ToString("F1") + saniyeMetni;
+        }
+
+        if (tebriklerPaneli != null)
+            tebriklerPaneli.SetActive(true);
+    }
+
+    // YENİ: Tebrikler ekranındaki "TAMAM" butonuna bu fonksiyonu bağlayacağız!
+    public void TebriklerTamamButonunaBasildi()
+    {
+        if (tebriklerPaneli != null) tebriklerPaneli.SetActive(false);
+        if (hafizaOyunuPaneli != null) hafizaOyunuPaneli.SetActive(false);
+        if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(true); // Mod seçime geri dön
+    }
+}
