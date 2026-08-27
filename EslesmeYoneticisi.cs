@@ -125,14 +125,30 @@ public class EslesmeYoneticisi : MonoBehaviour
     {
         TemizleYemekKartlari();
 
-        if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(false);
-        if (eslesmeOyunuPaneli != null) eslesmeOyunuPaneli.SetActive(true);
-        if (tebriklerPaneli != null) tebriklerPaneli.SetActive(false);
+        if (GecisYoneticisi.Instance != null)
+        {
+            GecisYoneticisi.Instance.GecisYap(() => {
+                if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(false);
+                if (eslesmeOyunuPaneli != null) eslesmeOyunuPaneli.SetActive(true);
+                if (tebriklerPaneli != null) tebriklerPaneli.SetActive(false);
 
-        if (duraklatButonu != null) duraklatButonu.SetActive(true);
-        if (sagBilgiPaneli != null) sagBilgiPaneli.SetActive(true);
+                if (duraklatButonu != null) duraklatButonu.SetActive(true);
+                if (sagBilgiPaneli != null) sagBilgiPaneli.SetActive(true);
 
-        OyunuBaslat();
+                OyunuBaslat();
+            });
+        }
+        else
+        {
+            if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(false);
+            if (eslesmeOyunuPaneli != null) eslesmeOyunuPaneli.SetActive(true);
+            if (tebriklerPaneli != null) tebriklerPaneli.SetActive(false);
+
+            if (duraklatButonu != null) duraklatButonu.SetActive(true);
+            if (sagBilgiPaneli != null) sagBilgiPaneli.SetActive(true);
+
+            OyunuBaslat();
+        }
     }
 
     void OyunuBaslat()
@@ -383,9 +399,20 @@ public class EslesmeYoneticisi : MonoBehaviour
     {
         TemizleYemekKartlari();
 
-        if (tebriklerPaneli != null) tebriklerPaneli.SetActive(false);
-        if (eslesmeOyunuPaneli != null) eslesmeOyunuPaneli.SetActive(false);
-        if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(true);
+        if (GecisYoneticisi.Instance != null)
+        {
+            GecisYoneticisi.Instance.GecisYap(() => {
+                if (tebriklerPaneli != null) tebriklerPaneli.SetActive(false);
+                if (eslesmeOyunuPaneli != null) eslesmeOyunuPaneli.SetActive(false);
+                if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(true);
+            });
+        }
+        else
+        {
+            if (tebriklerPaneli != null) tebriklerPaneli.SetActive(false);
+            if (eslesmeOyunuPaneli != null) eslesmeOyunuPaneli.SetActive(false);
+            if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(true);
+        }
     }
 
     public void GeriButonunaBasildi()
@@ -398,11 +425,24 @@ public class EslesmeYoneticisi : MonoBehaviour
         oyunDevamEdiyor = false;
         TemizleYemekKartlari();
 
-        if (eslesmeOyunuPaneli != null) eslesmeOyunuPaneli.SetActive(false);
-        if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(true);
+        if (GecisYoneticisi.Instance != null)
+        {
+            GecisYoneticisi.Instance.GecisYap(() => {
+                if (eslesmeOyunuPaneli != null) eslesmeOyunuPaneli.SetActive(false);
+                if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(true);
 
-        if (duraklatButonu != null) duraklatButonu.SetActive(false);
-        if (sagBilgiPaneli != null) sagBilgiPaneli.SetActive(false);
+                if (duraklatButonu != null) duraklatButonu.SetActive(false);
+                if (sagBilgiPaneli != null) sagBilgiPaneli.SetActive(false);
+            });
+        }
+        else
+        {
+            if (eslesmeOyunuPaneli != null) eslesmeOyunuPaneli.SetActive(false);
+            if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(true);
+
+            if (duraklatButonu != null) duraklatButonu.SetActive(false);
+            if (sagBilgiPaneli != null) sagBilgiPaneli.SetActive(false);
+        }
     }
 
     // --- Duraklatma menüsündeki "Ana Menü'ye Dön" butonunun çağırdığı metod ---

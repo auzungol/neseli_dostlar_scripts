@@ -117,20 +117,35 @@ public class YapbozYoneticisi : MonoBehaviour
         }
     }
 
-   public void YapbozModunaGirildi()
-{
-    if (GecisYoneticisi.Instance != null)
+    public void YapbozModunaGirildi()
     {
-        GecisYoneticisi.Instance.GecisYap(() => {
-            MasayiTemizle();
+        MasayiTemizle();
+
+        if (GecisYoneticisi.Instance != null)
+        {
+            GecisYoneticisi.Instance.GecisYap(() => {
+                if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(false);
+                if (yapbozOyunuPaneli != null) yapbozOyunuPaneli.SetActive(true);
+                if (tebriklerPaneli != null) tebriklerPaneli.SetActive(false);
+                if (hayvanSecimPaneli != null) hayvanSecimPaneli.SetActive(false);
+                if (zorlukSecimPaneli != null) zorlukSecimPaneli.SetActive(true);
+
+                if (duraklatButonu != null) duraklatButonu.SetActive(false);
+                if (sagBilgiPaneli != null) sagBilgiPaneli.SetActive(false);
+            });
+        }
+        else
+        {
             if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(false);
             if (yapbozOyunuPaneli != null) yapbozOyunuPaneli.SetActive(true);
             if (tebriklerPaneli != null) tebriklerPaneli.SetActive(false);
             if (hayvanSecimPaneli != null) hayvanSecimPaneli.SetActive(false);
             if (zorlukSecimPaneli != null) zorlukSecimPaneli.SetActive(true);
-        });
+
+            if (duraklatButonu != null) duraklatButonu.SetActive(false);
+            if (sagBilgiPaneli != null) sagBilgiPaneli.SetActive(false);
+        }
     }
-}
 
     public void Zorluk3x2Secildi()
     {
@@ -157,8 +172,38 @@ public class YapbozYoneticisi : MonoBehaviour
 
     public void HayvanSecildi(int hayvanIndex)
     {
-        if (hayvanSecimPaneli != null) hayvanSecimPaneli.SetActive(false);
-        OyunuBaslat(secilenSatirGecici, secilenSutunGecici, hayvanIndex);
+        // Bulut geçişiyle sarmaladık - SEÇ'e basar basmaz bulutlar ANINDA kapanmaya başlasın,
+        // altında OyunuBaslat()'ın ağır işlemleri (parça/yuva oluşturma) örtülü kalsın.
+        if (GecisYoneticisi.Instance != null)
+        {
+            GecisYoneticisi.Instance.GecisYap(
+                ortadaCagrilacak: () => {
+                    if (hayvanSecimPaneli != null) hayvanSecimPaneli.SetActive(false);
+                    OyunuBaslat(secilenSatirGecici, secilenSutunGecici, hayvanIndex);
+                },
+                tamamlaninca: () => {
+                    // Bulutlar TAMAMEN açıldıktan SONRA geri sayım başlar - böylece
+                    // geri sayım hiçbir zaman bulut animasyonuyla çakışmaz.
+                    if (GeriSayimYoneticisi.Instance != null)
+                    {
+                        GeriSayimYoneticisi.Instance.GeriSayimBaslat(() => {
+                            // Geri sayım bitince süre sayacı GERÇEKTEN burada başlar.
+                            oyunDevamEdiyor = true;
+                        });
+                    }
+                    else
+                    {
+                        oyunDevamEdiyor = true;
+                    }
+                }
+            );
+        }
+        else
+        {
+            if (hayvanSecimPaneli != null) hayvanSecimPaneli.SetActive(false);
+            OyunuBaslat(secilenSatirGecici, secilenSutunGecici, hayvanIndex);
+            oyunDevamEdiyor = true;
+        }
     }
 
     void OyunuBaslat(int satirSayisi, int sutunSayisi, int hayvanIndex)
@@ -191,7 +236,19 @@ public class YapbozYoneticisi : MonoBehaviour
         gecenSure = 0f;
         yerlesenParcaSayisi = 0;
         toplamParcaSayisi = parcalar.Length;
-        oyunDevamEdiyor = true;
+        // DİKKAT: oyunDevamEdiyor BURADA true yapılmıyor artık - 3-2-1-BAŞLA geri sayımı
+        // bitene kadar süre saymaya başlamamalı. Geri sayımın "bittiginde" callback'inde set edilecek.
+
+        // YENİ FIX: Update() henüz çalışmadığı için (oyunDevamEdiyor hâlâ false) sureYazisi
+        // TMP objesinin Inspector'daki varsayılan "New Text" içeriği geri sayım boyunca
+        // görünür kalıyordu. Update()'in kullandığı AYNI formatla, süre 0.0 iken bir kere
+        // burada elle yazdırıyoruz - geri sayım sırasında "SÜRE / 0.0 SN" görünsün.
+        if (sureYazisi != null)
+        {
+            string sureKelimesi = MenuYoneticisi.turkceMi ? "SÜRE" : "TIME";
+            string saniyeKisaltma = MenuYoneticisi.turkceMi ? " SN" : " S";
+            sureYazisi.text = sureKelimesi + "\n" + gecenSure.ToString("F1") + saniyeKisaltma;
+        }
 
         if (ipucuButonu != null) ipucuButonu.interactable = true;
         if (duraklatButonu != null) duraklatButonu.SetActive(true);
@@ -445,14 +502,30 @@ public class YapbozYoneticisi : MonoBehaviour
     {
         MasayiTemizle();
 
-        if (tebriklerPaneli != null) tebriklerPaneli.SetActive(false);
-        if (hayvanSecimPaneli != null) hayvanSecimPaneli.SetActive(false);
-        if (zorlukSecimPaneli != null) zorlukSecimPaneli.SetActive(false);
-        if (yapbozOyunuPaneli != null) yapbozOyunuPaneli.SetActive(false);
-        if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(true);
+        if (GecisYoneticisi.Instance != null)
+        {
+            GecisYoneticisi.Instance.GecisYap(() => {
+                if (tebriklerPaneli != null) tebriklerPaneli.SetActive(false);
+                if (hayvanSecimPaneli != null) hayvanSecimPaneli.SetActive(false);
+                if (zorlukSecimPaneli != null) zorlukSecimPaneli.SetActive(false);
+                if (yapbozOyunuPaneli != null) yapbozOyunuPaneli.SetActive(false);
+                if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(true);
 
-        if (duraklatButonu != null) duraklatButonu.SetActive(false);
-        if (sagBilgiPaneli != null) sagBilgiPaneli.SetActive(false);
+                if (duraklatButonu != null) duraklatButonu.SetActive(false);
+                if (sagBilgiPaneli != null) sagBilgiPaneli.SetActive(false);
+            });
+        }
+        else
+        {
+            if (tebriklerPaneli != null) tebriklerPaneli.SetActive(false);
+            if (hayvanSecimPaneli != null) hayvanSecimPaneli.SetActive(false);
+            if (zorlukSecimPaneli != null) zorlukSecimPaneli.SetActive(false);
+            if (yapbozOyunuPaneli != null) yapbozOyunuPaneli.SetActive(false);
+            if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(true);
+
+            if (duraklatButonu != null) duraklatButonu.SetActive(false);
+            if (sagBilgiPaneli != null) sagBilgiPaneli.SetActive(false);
+        }
     }
 
     public void GeriButonunaBasildi()
@@ -482,15 +555,29 @@ public class YapbozYoneticisi : MonoBehaviour
     public void ZorlukSecimindenGeriDon()
     {
         if (zorlukSecimPaneli != null) zorlukSecimPaneli.SetActive(false);
-        // KRİTİK FIX: Mod seçim ekranına dönüyoruz - YapbozOyunPaneli'nin KENDİSİNİ de
-        // kapatmazsak (ArkaPlan dahil tüm içeriği) aktif kalıp oyunSecimGrubu'nun ÜSTÜNE
-        // biniyor. ArkaPlan tam ekran + Raycast Target açık olduğundan tüm tıklamaları
-        // yutuyordu - "zorluk modundan geri dönünce hiçbir yere tıklanamıyor" bugu buydu.
-        if (yapbozOyunuPaneli != null) yapbozOyunuPaneli.SetActive(false);
-        if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(true);
 
-        if (duraklatButonu != null) duraklatButonu.SetActive(false);
-        if (sagBilgiPaneli != null) sagBilgiPaneli.SetActive(false);
+        if (GecisYoneticisi.Instance != null)
+        {
+            GecisYoneticisi.Instance.GecisYap(() => {
+                // KRİTİK FIX: Mod seçim ekranına dönüyoruz - YapbozOyunPaneli'nin KENDİSİNİ de
+                // kapatmazsak (ArkaPlan dahil tüm içeriği) aktif kalıp oyunSecimGrubu'nun ÜSTÜNE
+                // biniyor. ArkaPlan tam ekran + Raycast Target açık olduğundan tüm tıklamaları
+                // yutuyordu - "zorluk modundan geri dönünce hiçbir yere tıklanamıyor" bugu buydu.
+                if (yapbozOyunuPaneli != null) yapbozOyunuPaneli.SetActive(false);
+                if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(true);
+
+                if (duraklatButonu != null) duraklatButonu.SetActive(false);
+                if (sagBilgiPaneli != null) sagBilgiPaneli.SetActive(false);
+            });
+        }
+        else
+        {
+            if (yapbozOyunuPaneli != null) yapbozOyunuPaneli.SetActive(false);
+            if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(true);
+
+            if (duraklatButonu != null) duraklatButonu.SetActive(false);
+            if (sagBilgiPaneli != null) sagBilgiPaneli.SetActive(false);
+        }
     }
 
     // --- YENİ: HayvanSecimPaneli'ndeki kendi Geri butonuna bağlanacak ---
@@ -510,14 +597,31 @@ public class YapbozYoneticisi : MonoBehaviour
     {
         oyunDevamEdiyor = false;
         MasayiTemizle();
-        if (yapbozOyunuPaneli != null) yapbozOyunuPaneli.SetActive(false);
-        if (hayvanSecimPaneli != null) hayvanSecimPaneli.SetActive(false);
-        if (zorlukSecimPaneli != null) zorlukSecimPaneli.SetActive(false);
-        if (tebriklerPaneli != null) tebriklerPaneli.SetActive(false);
-        if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(true);
 
-        if (duraklatButonu != null) duraklatButonu.SetActive(false);
-        if (sagBilgiPaneli != null) sagBilgiPaneli.SetActive(false);
+        if (GecisYoneticisi.Instance != null)
+        {
+            GecisYoneticisi.Instance.GecisYap(() => {
+                if (yapbozOyunuPaneli != null) yapbozOyunuPaneli.SetActive(false);
+                if (hayvanSecimPaneli != null) hayvanSecimPaneli.SetActive(false);
+                if (zorlukSecimPaneli != null) zorlukSecimPaneli.SetActive(false);
+                if (tebriklerPaneli != null) tebriklerPaneli.SetActive(false);
+                if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(true);
+
+                if (duraklatButonu != null) duraklatButonu.SetActive(false);
+                if (sagBilgiPaneli != null) sagBilgiPaneli.SetActive(false);
+            });
+        }
+        else
+        {
+            if (yapbozOyunuPaneli != null) yapbozOyunuPaneli.SetActive(false);
+            if (hayvanSecimPaneli != null) hayvanSecimPaneli.SetActive(false);
+            if (zorlukSecimPaneli != null) zorlukSecimPaneli.SetActive(false);
+            if (tebriklerPaneli != null) tebriklerPaneli.SetActive(false);
+            if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(true);
+
+            if (duraklatButonu != null) duraklatButonu.SetActive(false);
+            if (sagBilgiPaneli != null) sagBilgiPaneli.SetActive(false);
+        }
     }
 
     public void DuraklatButonunaBasildi()

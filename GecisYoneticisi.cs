@@ -82,14 +82,16 @@ public class GecisYoneticisi : MonoBehaviour
         }
     }
 
-    // Dışarıdan çağrılacak ANA metod. ortadaCagrilacak = ekran tam kapalıyken çalışacak kod
-    // (panel SetActive değişimleri, oyun başlatma vs.)
-    public void GecisYap(Action ortadaCagrilacak)
+    // Dışarıdan çağrılacak ANA metod.
+    // ortadaCagrilacak = ekran tam kapalıyken çalışacak kod (panel SetActive değişimleri, oyun kurulumu vs.)
+    // tamamlaninca = TÜM geçiş (kapanış + açılış) tamamen bitince çalışacak kod - örn. 3-2-1-BAŞLA
+    // geri sayımını burada başlatın, bulutlarla ÇAKIŞMASIN diye.
+    public void GecisYap(Action ortadaCagrilacak, Action tamamlaninca = null)
     {
-        StartCoroutine(GecisCoroutine(ortadaCagrilacak));
+        StartCoroutine(GecisCoroutine(ortadaCagrilacak, tamamlaninca));
     }
 
-    IEnumerator GecisCoroutine(Action ortadaCagrilacak)
+    IEnumerator GecisCoroutine(Action ortadaCagrilacak, Action tamamlaninca)
     {
         yield return KaydirCoroutine(kapaniyor: true);
 
@@ -98,6 +100,8 @@ public class GecisYoneticisi : MonoBehaviour
         yield return new WaitForSecondsRealtime(kapaliBeklemeSuresi);
 
         yield return KaydirCoroutine(kapaniyor: false);
+
+        tamamlaninca?.Invoke();
     }
 
     IEnumerator KaydirCoroutine(bool kapaniyor)

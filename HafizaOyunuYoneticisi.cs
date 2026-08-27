@@ -68,10 +68,20 @@ public class HafizaOyunuYoneticisi : MonoBehaviour
     // Ana Menü'deki mod seçim carousel'inin "BAŞLA" butonu bunu çağıracak.
     public void HafizaModunaGirildi()
     {
-        if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(false);
-        if (hafizaOyunuPaneli != null) hafizaOyunuPaneli.SetActive(true);
-
-        OyunuBaslat();
+        if (GecisYoneticisi.Instance != null)
+        {
+            GecisYoneticisi.Instance.GecisYap(() => {
+                if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(false);
+                if (hafizaOyunuPaneli != null) hafizaOyunuPaneli.SetActive(true);
+                OyunuBaslat();
+            });
+        }
+        else
+        {
+            if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(false);
+            if (hafizaOyunuPaneli != null) hafizaOyunuPaneli.SetActive(true);
+            OyunuBaslat();
+        }
     }
 
     public void OyunuBaslat()
@@ -253,9 +263,20 @@ public class HafizaOyunuYoneticisi : MonoBehaviour
     // YENİ: Tebrikler ekranındaki "TAMAM" butonuna bu fonksiyonu bağlayacağız!
     public void TebriklerTamamButonunaBasildi()
     {
-        if (tebriklerPaneli != null) tebriklerPaneli.SetActive(false);
-        if (hafizaOyunuPaneli != null) hafizaOyunuPaneli.SetActive(false);
-        if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(true); // Mod seçime geri dön
+        if (GecisYoneticisi.Instance != null)
+        {
+            GecisYoneticisi.Instance.GecisYap(() => {
+                if (tebriklerPaneli != null) tebriklerPaneli.SetActive(false);
+                if (hafizaOyunuPaneli != null) hafizaOyunuPaneli.SetActive(false);
+                if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(true);
+            });
+        }
+        else
+        {
+            if (tebriklerPaneli != null) tebriklerPaneli.SetActive(false);
+            if (hafizaOyunuPaneli != null) hafizaOyunuPaneli.SetActive(false);
+            if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(true);
+        }
     }
 
     // --- YENİ: Duraklatma menüsündeki "Ana Menü'ye Dön" butonunun çağırdığı metod ---
@@ -266,11 +287,22 @@ public class HafizaOyunuYoneticisi : MonoBehaviour
         // yok olmuş kart referanslarına erişmeye çalışıp NullReferenceException
         // fırlatabiliyordu. Önce coroutine'leri durdurup sonra temizliyoruz.
         StopAllCoroutines();
-
         oyunDevamEdiyor = false;
-        MasayiTemizle();
-        if (hafizaOyunuPaneli != null) hafizaOyunuPaneli.SetActive(false);
-        if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(true);
+
+        if (GecisYoneticisi.Instance != null)
+        {
+            GecisYoneticisi.Instance.GecisYap(() => {
+                MasayiTemizle();
+                if (hafizaOyunuPaneli != null) hafizaOyunuPaneli.SetActive(false);
+                if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(true);
+            });
+        }
+        else
+        {
+            MasayiTemizle();
+            if (hafizaOyunuPaneli != null) hafizaOyunuPaneli.SetActive(false);
+            if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(true);
+        }
     }
 
     public void DuraklatButonunaBasildi()
