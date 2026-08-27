@@ -127,16 +127,31 @@ public class EslesmeYoneticisi : MonoBehaviour
 
         if (GecisYoneticisi.Instance != null)
         {
-            GecisYoneticisi.Instance.GecisYap(() => {
-                if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(false);
-                if (eslesmeOyunuPaneli != null) eslesmeOyunuPaneli.SetActive(true);
-                if (tebriklerPaneli != null) tebriklerPaneli.SetActive(false);
+            GecisYoneticisi.Instance.GecisYap(
+                ortadaCagrilacak: () => {
+                    if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(false);
+                    if (eslesmeOyunuPaneli != null) eslesmeOyunuPaneli.SetActive(true);
+                    if (tebriklerPaneli != null) tebriklerPaneli.SetActive(false);
 
-                if (duraklatButonu != null) duraklatButonu.SetActive(true);
-                if (sagBilgiPaneli != null) sagBilgiPaneli.SetActive(true);
+                    if (duraklatButonu != null) duraklatButonu.SetActive(true);
+                    if (sagBilgiPaneli != null) sagBilgiPaneli.SetActive(true);
 
-                OyunuBaslat();
-            });
+                    OyunuBaslat();
+                },
+                tamamlaninca: () => {
+                    // Bulutlar TAMAMEN açıldıktan SONRA geri sayım başlar.
+                    if (GeriSayimYoneticisi.Instance != null)
+                    {
+                        GeriSayimYoneticisi.Instance.GeriSayimBaslat(() => {
+                            oyunDevamEdiyor = true;
+                        });
+                    }
+                    else
+                    {
+                        oyunDevamEdiyor = true;
+                    }
+                }
+            );
         }
         else
         {
@@ -148,6 +163,7 @@ public class EslesmeYoneticisi : MonoBehaviour
             if (sagBilgiPaneli != null) sagBilgiPaneli.SetActive(true);
 
             OyunuBaslat();
+            oyunDevamEdiyor = true;
         }
     }
 
@@ -159,8 +175,18 @@ public class EslesmeYoneticisi : MonoBehaviour
 
         aktifIndex = 0;
 
+        // DİKKAT: oyunDevamEdiyor artık BURADA true yapılmıyor - 3-2-1-BAŞLA geri sayımı
+        // bitene kadar süre saymaya başlamamalı.
         gecenSure = 0f;
-        oyunDevamEdiyor = true;
+
+        // YENİ FIX: sureYazisi'nin Inspector'daki varsayılan "New Text" içeriği geri sayım
+        // boyunca görünür kalmasın diye, Update() ile AYNI formatla burada bir kere yazdırıyoruz.
+        if (sureYazisi != null)
+        {
+            string sureKelimesi = MenuYoneticisi.turkceMi ? "SÜRE" : "TIME";
+            string saniyeKisaltma = MenuYoneticisi.turkceMi ? " SN" : " S";
+            sureYazisi.text = sureKelimesi + "\n" + gecenSure.ToString("F1") + saniyeKisaltma;
+        }
 
         enIyiSure = PlayerPrefs.GetFloat(REKOR_ANAHTARI, 0f);
         EnIyiSureyiEkranaYaz();

@@ -70,17 +70,33 @@ public class HafizaOyunuYoneticisi : MonoBehaviour
     {
         if (GecisYoneticisi.Instance != null)
         {
-            GecisYoneticisi.Instance.GecisYap(() => {
-                if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(false);
-                if (hafizaOyunuPaneli != null) hafizaOyunuPaneli.SetActive(true);
-                OyunuBaslat();
-            });
+            GecisYoneticisi.Instance.GecisYap(
+                ortadaCagrilacak: () => {
+                    if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(false);
+                    if (hafizaOyunuPaneli != null) hafizaOyunuPaneli.SetActive(true);
+                    OyunuBaslat();
+                },
+                tamamlaninca: () => {
+                    // Bulutlar TAMAMEN açıldıktan SONRA geri sayım başlar.
+                    if (GeriSayimYoneticisi.Instance != null)
+                    {
+                        GeriSayimYoneticisi.Instance.GeriSayimBaslat(() => {
+                            oyunDevamEdiyor = true;
+                        });
+                    }
+                    else
+                    {
+                        oyunDevamEdiyor = true;
+                    }
+                }
+            );
         }
         else
         {
             if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(false);
             if (hafizaOyunuPaneli != null) hafizaOyunuPaneli.SetActive(true);
             OyunuBaslat();
+            oyunDevamEdiyor = true;
         }
     }
 
@@ -89,10 +105,20 @@ public class HafizaOyunuYoneticisi : MonoBehaviour
         MasayiTemizle();
         KartlariDagit();
         
-        // Değişkenleri sıfırla ve sayacı başlat
+        // Değişkenleri sıfırla - DİKKAT: oyunDevamEdiyor artık BURADA true yapılmıyor,
+        // 3-2-1-BAŞLA geri sayımı bitene kadar süre saymaya başlamamalı.
         gecenSure = 0f;
         eslesenCiftSayisi = 0;
-        oyunDevamEdiyor = true;
+
+        // YENİ FIX: Update() henüz çalışmadığı için sureYazisi'nin Inspector'daki varsayılan
+        // "New Text" içeriği geri sayım boyunca görünür kalıyordu - Update() ile AYNI formatla
+        // burada bir kere elle yazdırıyoruz.
+        if (sureYazisi != null)
+        {
+            string sureKelimesi = MenuYoneticisi.turkceMi ? "SÜRE" : "TIME";
+            string saniyeKisaltma = MenuYoneticisi.turkceMi ? " SN" : " S";
+            sureYazisi.text = sureKelimesi + "\n" + gecenSure.ToString("F1") + saniyeKisaltma;
+        }
         
         if (tebriklerPaneli != null) tebriklerPaneli.SetActive(false);
         

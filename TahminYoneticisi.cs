@@ -121,16 +121,31 @@ public class TahminYoneticisi : MonoBehaviour
     {
         if (GecisYoneticisi.Instance != null)
         {
-            GecisYoneticisi.Instance.GecisYap(() => {
-                if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(false);
-                if (tahminOyunuPaneli != null) tahminOyunuPaneli.SetActive(true);
-                if (tebriklerPaneli != null) tebriklerPaneli.SetActive(false);
+            GecisYoneticisi.Instance.GecisYap(
+                ortadaCagrilacak: () => {
+                    if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(false);
+                    if (tahminOyunuPaneli != null) tahminOyunuPaneli.SetActive(true);
+                    if (tebriklerPaneli != null) tebriklerPaneli.SetActive(false);
 
-                enIyiSure = PlayerPrefs.GetFloat(RekorAnahtari, 0f);
-                EnIyiSureyiEkranaYaz();
+                    enIyiSure = PlayerPrefs.GetFloat(RekorAnahtari, 0f);
+                    EnIyiSureyiEkranaYaz();
 
-                OyunuBaslat();
-            });
+                    OyunuBaslat();
+                },
+                tamamlaninca: () => {
+                    // Bulutlar TAMAMEN açıldıktan SONRA geri sayım başlar.
+                    if (GeriSayimYoneticisi.Instance != null)
+                    {
+                        GeriSayimYoneticisi.Instance.GeriSayimBaslat(() => {
+                            oyunDevamEdiyor = true;
+                        });
+                    }
+                    else
+                    {
+                        oyunDevamEdiyor = true;
+                    }
+                }
+            );
         }
         else
         {
@@ -142,6 +157,7 @@ public class TahminYoneticisi : MonoBehaviour
             EnIyiSureyiEkranaYaz();
 
             OyunuBaslat();
+            oyunDevamEdiyor = true;
         }
     }
 
@@ -153,8 +169,18 @@ public class TahminYoneticisi : MonoBehaviour
 
         aktifIndex = 0;
         toplamYildiz = 0;
+        // DİKKAT: oyunDevamEdiyor artık BURADA true yapılmıyor - 3-2-1-BAŞLA geri sayımı
+        // bitene kadar süre saymaya başlamamalı.
         gecenSure = 0f;
-        oyunDevamEdiyor = true;
+
+        // YENİ FIX: sureYazisi'nin Inspector'daki varsayılan "New Text" içeriği geri sayım
+        // boyunca görünür kalmasın diye, Update() ile AYNI formatla burada bir kere yazdırıyoruz.
+        if (sureYazisi != null)
+        {
+            string sureKelimesi = MenuYoneticisi.turkceMi ? "SÜRE" : "TIME";
+            string saniyeKisaltma = MenuYoneticisi.turkceMi ? " SN" : " S";
+            sureYazisi.text = sureKelimesi + "\n" + gecenSure.ToString("F1") + saniyeKisaltma;
+        }
 
         SiradakiHayvaniGoster();
     }
