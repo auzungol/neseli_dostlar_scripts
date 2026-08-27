@@ -49,6 +49,15 @@ public class YapbozYoneticisi : MonoBehaviour
     public GameObject tebriklerPaneli;
     public GameObject oyunSecimGrubu;
 
+    [Header("Duraklat Butonu")]
+    [Tooltip("Sadece gerçek oyun ekranında (OyunAlani) görünmeli - Zorluk/Hayvan seçim ekranlarında gizlenir.")]
+    public GameObject duraklatButonu;
+
+    [Header("Sağ Bilgi Paneli")]
+    [Tooltip("SÜRE/REKOR yazılarının olduğu panel. Sahnede varsayılan kapalı başlıyorsa hiçbir kod onu açmıyordu - " +
+             "duraklatButonu ile aynı mantıkla, sadece gerçek oyun ekranında görünür.")]
+    public GameObject sagBilgiPaneli;
+
     [Header("İpucu Butonu")]
     public Button ipucuButonu;
 
@@ -58,6 +67,9 @@ public class YapbozYoneticisi : MonoBehaviour
     public TextMeshProUGUI tebriklerSureYazisi;
     public TextMeshProUGUI tebriklerBaslikYazisi;
     public TextMeshProUGUI tebriklerButonYazisi;
+    [Tooltip("Tebrikler ekranında REKOR yazısı - diğer modlarla tutarlı olsun diye eklendi. " +
+             "Sağdaki SagBilgiPaneli'ndeki enIyiSureYazisi ile AYNI formatı kullanır.")]
+    public TextMeshProUGUI tebriklerRekorYazisi;
 
     [Header("Hayvan Yapboz Setleri (8 Tane - HayvanSecildi(index) ile aynı sırada olmalı!)")]
     public HayvanYapbozSeti[] hayvanSetleri;
@@ -105,16 +117,20 @@ public class YapbozYoneticisi : MonoBehaviour
         }
     }
 
-    public void YapbozModunaGirildi()
+   public void YapbozModunaGirildi()
+{
+    if (GecisYoneticisi.Instance != null)
     {
-        MasayiTemizle();
-
-        if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(false);
-        if (yapbozOyunuPaneli != null) yapbozOyunuPaneli.SetActive(true);
-        if (tebriklerPaneli != null) tebriklerPaneli.SetActive(false);
-        if (hayvanSecimPaneli != null) hayvanSecimPaneli.SetActive(false);
-        if (zorlukSecimPaneli != null) zorlukSecimPaneli.SetActive(true);
+        GecisYoneticisi.Instance.GecisYap(() => {
+            MasayiTemizle();
+            if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(false);
+            if (yapbozOyunuPaneli != null) yapbozOyunuPaneli.SetActive(true);
+            if (tebriklerPaneli != null) tebriklerPaneli.SetActive(false);
+            if (hayvanSecimPaneli != null) hayvanSecimPaneli.SetActive(false);
+            if (zorlukSecimPaneli != null) zorlukSecimPaneli.SetActive(true);
+        });
     }
+}
 
     public void Zorluk3x2Secildi()
     {
@@ -134,6 +150,9 @@ public class YapbozYoneticisi : MonoBehaviour
     {
         if (zorlukSecimPaneli != null) zorlukSecimPaneli.SetActive(false);
         if (hayvanSecimPaneli != null) hayvanSecimPaneli.SetActive(true);
+
+        if (duraklatButonu != null) duraklatButonu.SetActive(false);
+        if (sagBilgiPaneli != null) sagBilgiPaneli.SetActive(false);
     }
 
     public void HayvanSecildi(int hayvanIndex)
@@ -175,6 +194,8 @@ public class YapbozYoneticisi : MonoBehaviour
         oyunDevamEdiyor = true;
 
         if (ipucuButonu != null) ipucuButonu.interactable = true;
+        if (duraklatButonu != null) duraklatButonu.SetActive(true);
+        if (sagBilgiPaneli != null) sagBilgiPaneli.SetActive(true);
 
         string rekorAnahtari = RekorAnahtariGetir(satirSayisi, sutunSayisi);
         enIyiSure = PlayerPrefs.GetFloat(rekorAnahtari, 0f);
@@ -410,6 +431,13 @@ public class YapbozYoneticisi : MonoBehaviour
             tebriklerSureYazisi.text = sureMetni + gecenSure.ToString("F1") + saniyeMetni;
         }
 
+        if (tebriklerRekorYazisi != null)
+        {
+            string rekorKelimesi = MenuYoneticisi.turkceMi ? "REKOR: " : "BEST: ";
+            string saniyeKisaltma = MenuYoneticisi.turkceMi ? " SN" : " S";
+            tebriklerRekorYazisi.text = rekorKelimesi + enIyiSure.ToString("F1") + saniyeKisaltma;
+        }
+
         if (tebriklerPaneli != null) tebriklerPaneli.SetActive(true);
     }
 
@@ -422,6 +450,9 @@ public class YapbozYoneticisi : MonoBehaviour
         if (zorlukSecimPaneli != null) zorlukSecimPaneli.SetActive(false);
         if (yapbozOyunuPaneli != null) yapbozOyunuPaneli.SetActive(false);
         if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(true);
+
+        if (duraklatButonu != null) duraklatButonu.SetActive(false);
+        if (sagBilgiPaneli != null) sagBilgiPaneli.SetActive(false);
     }
 
     public void GeriButonunaBasildi()
@@ -445,5 +476,54 @@ public class YapbozYoneticisi : MonoBehaviour
             if (yapbozOyunuPaneli != null) yapbozOyunuPaneli.SetActive(false);
             if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(true);
         }
+    }
+
+    // --- YENİ: ZorlukSecimPaneli'ndeki kendi Geri butonuna bağlanacak ---
+    public void ZorlukSecimindenGeriDon()
+    {
+        if (zorlukSecimPaneli != null) zorlukSecimPaneli.SetActive(false);
+        // KRİTİK FIX: Mod seçim ekranına dönüyoruz - YapbozOyunPaneli'nin KENDİSİNİ de
+        // kapatmazsak (ArkaPlan dahil tüm içeriği) aktif kalıp oyunSecimGrubu'nun ÜSTÜNE
+        // biniyor. ArkaPlan tam ekran + Raycast Target açık olduğundan tüm tıklamaları
+        // yutuyordu - "zorluk modundan geri dönünce hiçbir yere tıklanamıyor" bugu buydu.
+        if (yapbozOyunuPaneli != null) yapbozOyunuPaneli.SetActive(false);
+        if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(true);
+
+        if (duraklatButonu != null) duraklatButonu.SetActive(false);
+        if (sagBilgiPaneli != null) sagBilgiPaneli.SetActive(false);
+    }
+
+    // --- YENİ: HayvanSecimPaneli'ndeki kendi Geri butonuna bağlanacak ---
+    public void HayvanSecimindenGeriDon()
+    {
+        if (hayvanSecimPaneli != null) hayvanSecimPaneli.SetActive(false);
+        if (zorlukSecimPaneli != null) zorlukSecimPaneli.SetActive(true);
+
+        if (duraklatButonu != null) duraklatButonu.SetActive(false);
+        if (sagBilgiPaneli != null) sagBilgiPaneli.SetActive(false);
+    }
+
+    // --- YENİ: Oyun ekranındaki Duraklat menüsünün "Ana Menü'ye Dön" butonu
+    //           artık GeriButonunaBasildi (bir adım geri) yerine DOĞRUDAN
+    //           mod seçim ekranına atsın diye eklendi ---
+    public void OyunSecimineDon()
+    {
+        oyunDevamEdiyor = false;
+        MasayiTemizle();
+        if (yapbozOyunuPaneli != null) yapbozOyunuPaneli.SetActive(false);
+        if (hayvanSecimPaneli != null) hayvanSecimPaneli.SetActive(false);
+        if (zorlukSecimPaneli != null) zorlukSecimPaneli.SetActive(false);
+        if (tebriklerPaneli != null) tebriklerPaneli.SetActive(false);
+        if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(true);
+
+        if (duraklatButonu != null) duraklatButonu.SetActive(false);
+        if (sagBilgiPaneli != null) sagBilgiPaneli.SetActive(false);
+    }
+
+    public void DuraklatButonunaBasildi()
+    {
+        // DİKKAT: artık GeriButonunaBasildi değil, OyunSecimineDon çağrılıyor -
+        // duraklatma menüsündeki "Ana Menü'ye Dön" butonu doğrudan mod seçim ekranına gitsin diye.
+        PauseController.Instance.Ac(OyunSecimineDon);
     }
 }

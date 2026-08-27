@@ -13,16 +13,17 @@ public class TahminYoneticisi : MonoBehaviour
         public Sprite hayvanSprite; // Hem cevap seçeneğinde hem final "reveal" görselinde kullanılır
 
         [Tooltip("EslesmeYoneticisi'ndeki AYNI hayvanın 'Gorsel Olcek' değerini buraya kopyala - " +
-                 "aynı görseller kullanıldığı için aynı kalibrasyon geçerli olacaktır.")]
+                 "TEK referans, hem ödül görseli hem cevap seçeneği bunu kullanır. Artık ayrı bir " +
+                 "'kart içi doluluk oranı' YOK - cevap seçenekleri artık sabit bir kutuya sıkıştırılmıyor, " +
+                 "doğal oranlarıyla ortak bir yer çizgisi üzerinde duruyorlar.")]
         public float gorselOlcek = 1f;
 
-        [Tooltip("Cevap kartındaki (küçük) hayvan görselinin, kart kutusunun ne kadarını dolduracağı - " +
-                 "1 = kutuyu tam kullan, 0.7 = biraz daha küçük göster. 0.1-1 arasında sıkıştırılır, " +
-                 "asla kutudan taşamaz. 'gorselOlcek' ile KARIŞTIRMA, o ödül görseli (büyük, " +
-                 "TahminYoneticisi.hayvanGorseli) için ayrı bir alan. Bu alan SecenekKarti prefabındaki " +
-                 "HayvanGorseli kutusu referans alınarak hesaplanmalı (TahminGorselKalibratoru'nda " +
-                 "'Kart İçin mi?' kutusunu işaretleyip kaydet).")]
-        public float secenekGorselOlcek = 1f;
+        [Tooltip("PNG'nin alt kenarı ile karakterin GERÇEK ayak noktası arasındaki boşluk, ORİJİNAL " +
+                 "kaynak görsel piksel cinsinden (örn. 1024px'lik bir PNG'de 250 gibi). Her hayvanın " +
+                 "PNG'si içinde farklı miktarda boşluk bırakılmış olabilir - bu değer olmadan cevap " +
+                 "seçeneklerinde hayvanların 'ayakları' aynı hizada durmaz. Photoshop/piksel analiziyle " +
+                 "ölçülür, elle girilir.")]
+        public float tabanBoslugu = 0f;
 
         [TextArea]
         [Tooltip("Sırayla verilecek ipuçları (TÜRKÇE). 3-4 tane yeterli. Örn: 'Bataklıkta yaşarım', '4 ayaklı sürüngenim'...")]
@@ -35,7 +36,18 @@ public class TahminYoneticisi : MonoBehaviour
 
     [Header("Sahne Kurulumu")]
     public GameObject secenekKartPrefab;      // Image + TahminSecenekKarti.cs olan prefab
-    public RectTransform secenekGrubu;         // Horizontal Layout Group'lu, 3 kartı barındıran container
+
+    [Tooltip("3 SABİT konum (Yapboz'daki havuzSlotKonumlari ile AYNI mantık). Layout Group YOK - " +
+             "her slot'un kendi anchoredPosition'ı, hayvanın 'ayak' hizasını belirler. Üçünün de " +
+             "Y konumu AYNI olmalı ki tüm hayvanlar aynı yer çizgisinde dursun.")]
+    public RectTransform[] secenekSlotlari;
+
+    [Tooltip("Cevap seçeneklerindeki hayvanların, ödül görseline (hayvanGorseli) göre GENEL boyut " +
+             "çarpanı. 1 = ödül görseliyle aynı boyut, 0.5 = yarısı kadar. Tüm hayvanlar için ortak " +
+             "tek bir değer - her hayvanın KENDİ gorselOlcek'i zaten aralarındaki oranı koruyor.")]
+    [Range(0.1f, 1.5f)]
+    public float secenekGenelCarpan = 0.55f;
+
     public Image hayvanGorseli;                // Doğru cevapta büyüyerek beliren ödül görseli
     public TextMeshProUGUI ipucuMetniAlani;    // Verilen ipuçlarının biriktiği metin alanı
     public Button sonrakiIpucuButonu;
@@ -79,6 +91,17 @@ public class TahminYoneticisi : MonoBehaviour
     private float enIyiSure = 0f;
 
     private const string RekorAnahtari = "TahminEnIyiSure";
+
+    // Şu an sahnede duran seçenek objelerini, HANGİ hayvana ait olduklarıyla birlikte takip
+    // ediyoruz - böylece OnValidate() içinde secenekGenelCarpan Play modunda değiştirilince
+    // hepsini ANINDA yeniden boyutlandırabiliyoruz (kapalı kutuda tahmin yürütmek yerine
+    // canlı, WYSIWYG bir ayarlama deneyimi için).
+    private class AktifSecenek
+    {
+        public TahminSecenekKarti kart;
+        public TahminHayvani hayvan;
+    }
+    private List<AktifSecenek> aktifSecenekler = new List<AktifSecenek>();
 
     void Update()
     {
@@ -148,7 +171,7 @@ public class TahminYoneticisi : MonoBehaviour
         if (sonrakiIpucuButonu != null)
             sonrakiIpucuButonu.interactable = ipuclariAktif.Length > 1;
 
-        // 3 seçenek hazırla: 1 doğru + 2 yanlış (başka hayvanlardan, tekrarsız) - kendi ölçekleriyle birlikte
+        // 3 seçenek hazırla: 1 doğru + 2 yanlış (başka hayvanlardan, tekrarsız)
         List<TahminHayvani> secenekler = new List<TahminHayvani> { hayvan };
 
         List<int> digerIndexler = new List<int>();
@@ -161,15 +184,45 @@ public class TahminYoneticisi : MonoBehaviour
 
         KaristirListe(secenekler); // Doğru cevabın yeri de karışsın
 
-        // Kartlar HEP EŞİT sabit boyutta (Layout Element'te elle ayarladığın Preferred Width/Height) -
-        // ama sprite'ların kendi içindeki boşluk/oran farklı olduğu için görsel eşitliği
-        // her hayvanın kendi gorselOlcek kalibrasyonu sağlıyor.
-        for (int i = 0; i < secenekler.Count; i++)
+        // YENİ: Layout Group YOK. Her seçenek, KENDİ SABİT slot'unun altına yerleştirilir.
+        // Boyut = hayvanın gorselOlcek'i * genel çarpan - böylece her hayvan doğal oranını
+        // korur (zürafa uzun kalır, panda geniş kalır) ama hepsi aynı yer çizgisinde durur.
+        int slotSayisi = Mathf.Min(secenekler.Count, secenekSlotlari != null ? secenekSlotlari.Length : 0);
+        for (int i = 0; i < slotSayisi; i++)
         {
-            GameObject kartObje = Instantiate(secenekKartPrefab, secenekGrubu);
-            TahminSecenekKarti kart = kartObje.GetComponent<TahminSecenekKarti>();
+            GameObject secenekObje = Instantiate(secenekKartPrefab, secenekSlotlari[i]);
+            RectTransform rt = secenekObje.GetComponent<RectTransform>();
+            if (rt != null)
+            {
+                rt.anchorMin = new Vector2(0.5f, 0f);
+                rt.anchorMax = new Vector2(0.5f, 0f);
+                rt.pivot = new Vector2(0.5f, 0f);
+                rt.anchoredPosition = Vector2.zero;
+            }
+
+            TahminSecenekKarti kart = secenekObje.GetComponent<TahminSecenekKarti>();
             bool dogruMu = (secenekler[i] == hayvan);
-            kart.KartiKur(secenekler[i].hayvanSprite, dogruMu, this, secenekler[i].secenekGorselOlcek);
+            float efektifOlcek = secenekler[i].gorselOlcek * secenekGenelCarpan;
+            kart.KartiKur(secenekler[i].hayvanSprite, dogruMu, this, efektifOlcek, secenekler[i].tabanBoslugu);
+
+            aktifSecenekler.Add(new AktifSecenek { kart = kart, hayvan = secenekler[i] });
+        }
+    }
+
+    // YENİ: secenekGenelCarpan (ya da başka bir Inspector alanı) Play modundayken elle
+    // değiştirildiğinde Unity bunu otomatik çağırır. Şu an ekranda duran hayvanlar varsa,
+    // onları YENİDEN Instantiate etmeden, sadece boyutlarını anında güncelliyoruz -
+    // böylece "değeri değiştir, Play'e gir, bak, çık, tekrar dene" döngüsüne hiç gerek kalmaz,
+    // Inspector'da değeri sürüklerken sonucu CANLI görürsünüz.
+    void OnValidate()
+    {
+        if (!Application.isPlaying || aktifSecenekler == null) return;
+
+        foreach (AktifSecenek secenek in aktifSecenekler)
+        {
+            if (secenek.kart == null || secenek.hayvan == null) continue;
+            float efektifOlcek = secenek.hayvan.gorselOlcek * secenekGenelCarpan;
+            secenek.kart.OlcegiGuncelle(efektifOlcek, secenek.hayvan.tabanBoslugu);
         }
     }
 
@@ -184,9 +237,11 @@ public class TahminYoneticisi : MonoBehaviour
 
     void TemizleSecenekKartlari()
     {
-        if (secenekGrubu == null) return;
-        for (int i = secenekGrubu.childCount - 1; i >= 0; i--)
-            Destroy(secenekGrubu.GetChild(i).gameObject);
+        foreach (AktifSecenek secenek in aktifSecenekler)
+        {
+            if (secenek.kart != null) Destroy(secenek.kart.gameObject);
+        }
+        aktifSecenekler.Clear();
     }
 
     void KaristirListe<T>(List<T> liste)
@@ -368,5 +423,10 @@ public class TahminYoneticisi : MonoBehaviour
         if (tebriklerPaneli != null) tebriklerPaneli.SetActive(false);
         if (tahminOyunuPaneli != null) tahminOyunuPaneli.SetActive(false);
         if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(true);
+    }
+
+    public void DuraklatButonunaBasildi()
+    {
+        PauseController.Instance.Ac(GeriButonunaBasildi);
     }
 }

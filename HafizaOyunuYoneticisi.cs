@@ -64,6 +64,16 @@ public class HafizaOyunuYoneticisi : MonoBehaviour
         }
     }
 
+    // YENİ: Diğer 3 modun "...ModunaGirildi" metotlarıyla TUTARLI tek bir giriş noktası -
+    // Ana Menü'deki mod seçim carousel'inin "BAŞLA" butonu bunu çağıracak.
+    public void HafizaModunaGirildi()
+    {
+        if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(false);
+        if (hafizaOyunuPaneli != null) hafizaOyunuPaneli.SetActive(true);
+
+        OyunuBaslat();
+    }
+
     public void OyunuBaslat()
     {
         MasayiTemizle();
@@ -164,6 +174,16 @@ public class HafizaOyunuYoneticisi : MonoBehaviour
         kontrolEdiliyor = true; 
         yield return new WaitForSeconds(0.8f); 
 
+        // GÜVENLİK KONTROLÜ: Bekleme sırasında MasayiTemizle() çağrıldıysa
+        // (örn. oyuncu duraklatıp Ana Menü'ye döndüyse) kartlar zaten Destroy
+        // edilmiş ve referanslar null'lanmış olabilir. Bu durumda sessizce çık,
+        // NullReferenceException fırlatma.
+        if (ilkSecilenKart == null || ikinciSecilenKart == null)
+        {
+            kontrolEdiliyor = false;
+            yield break;
+        }
+
         if (ilkSecilenKart.kartID == ikinciSecilenKart.kartID)
         {
             // DOĞRU EŞLEŞME!
@@ -236,5 +256,25 @@ public class HafizaOyunuYoneticisi : MonoBehaviour
         if (tebriklerPaneli != null) tebriklerPaneli.SetActive(false);
         if (hafizaOyunuPaneli != null) hafizaOyunuPaneli.SetActive(false);
         if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(true); // Mod seçime geri dön
+    }
+
+    // --- YENİ: Duraklatma menüsündeki "Ana Menü'ye Dön" butonunun çağırdığı metod ---
+    public void GeriButonunaBasildi()
+    {
+        // KRİTİK: Arka planda bekleyen EslesmeyiKontrolEt/OyunuBitir coroutine'leri
+        // varsa, MasayiTemizle() kartları Destroy ettikten SONRA bunlar uyanıp
+        // yok olmuş kart referanslarına erişmeye çalışıp NullReferenceException
+        // fırlatabiliyordu. Önce coroutine'leri durdurup sonra temizliyoruz.
+        StopAllCoroutines();
+
+        oyunDevamEdiyor = false;
+        MasayiTemizle();
+        if (hafizaOyunuPaneli != null) hafizaOyunuPaneli.SetActive(false);
+        if (oyunSecimGrubu != null) oyunSecimGrubu.SetActive(true);
+    }
+
+    public void DuraklatButonunaBasildi()
+    {
+        PauseController.Instance.Ac(GeriButonunaBasildi);
     }
 }

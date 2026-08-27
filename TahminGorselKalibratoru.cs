@@ -5,6 +5,8 @@ using UnityEditor;
 
 // --- BU BİR OYUN SCRIPTI DEĞİL, SADECE SENİN İÇİN BİR EDİTÖR ARACI ---
 // Play moduna hiç girmeden, Scene view'da elle boyutlandırıp tek tıkla kaydetmek için.
+// YENİ: Artık tek bir "gorselOlcek" var - hem ödül görseli hem cevap seçenekleri bunu kullanıyor
+// (cevap seçeneklerinin genel boyutu ayrıca TahminYoneticisi.secenekGenelCarpan ile ölçekleniyor).
 public class TahminGorselKalibratoru : MonoBehaviour
 {
     [Header("Nereye Kaydedilecek?")]
@@ -12,23 +14,11 @@ public class TahminGorselKalibratoru : MonoBehaviour
     [Tooltip("hayvanlar dizisindeki index (0-7)")]
     public int hedefHayvanIndex;
 
-    [Tooltip("İŞARETLİYSE: 'secenekGorselOlcek' alanına kaydeder (cevap kartındaki küçük görsel için - " +
-             "artık 0-1 arası bir 'doluluk oranı' olarak kullanılıyor, kutudan taşma imkansız). " +
-             "İŞARETLİ DEĞİLSE: 'gorselOlcek' alanına kaydeder (ödül/reveal görseli için, eski davranış, taşıma korumasız).")]
-    public bool kartIcinMi = false;
-
     [Header("Ölçülecek Obje")]
     [Tooltip("Genelde bu objenin KENDİ Rect Transform'u. Üstüne bir Image koy, o hayvanın " +
-             "sprite'ını yerleştir, Scene view'da elle boyutlandır (Scale ya da Rect Tool ile, ikisi de olur), " +
+             "sprite'ını yerleştir, Scene view'da elle boyutlandır (Scale ya da Rect Tool ile), " +
              "diğer hayvanlarla görsel olarak dengeli duracak şekilde ayarla.")]
     public RectTransform gorselTransform;
-
-    [Tooltip("Karşılaştırma için referans. 'Kart İçin mi?' İŞARETLİ DEĞİLSE: TahminYoneticisi'ndeki " +
-             "'Hayvan Gorseli' (ödül/reveal görseli) objesini sürükle. İŞARETLİYSE: sahnedeki bir " +
-             "SecenekKarti örneğinin İÇİNDEKİ 'HayvanGorseli' objesini sürükle - Oyun Alani'ndaki " +
-             "'Hayvan Gorseli' DEĞİL, kartın kendi içindeki küçük görsel alanı olmalı. " +
-             "Ölçek, bu objenin taban genişliğine göre hesaplanır.")]
-    public RectTransform referansAlan;
 
 #if UNITY_EDITOR
     [ContextMenu("★ Bu Ölçeği Hayvana Kaydet")]
@@ -39,9 +29,9 @@ public class TahminGorselKalibratoru : MonoBehaviour
             Debug.LogError("[TahminGorselKalibratoru] Hedef Yonetici atanmamış!");
             return;
         }
-        if (gorselTransform == null || referansAlan == null)
+        if (gorselTransform == null)
         {
-            Debug.LogError("[TahminGorselKalibratoru] Gorsel Transform ya da Referans Alan atanmamış!");
+            Debug.LogError("[TahminGorselKalibratoru] Gorsel Transform atanmamış!");
             return;
         }
         if (hedefYonetici.hayvanlar == null || hedefHayvanIndex < 0 || hedefHayvanIndex >= hedefYonetici.hayvanlar.Length)
@@ -49,6 +39,13 @@ public class TahminGorselKalibratoru : MonoBehaviour
             Debug.LogError("[TahminGorselKalibratoru] Hedef Hayvan Index geçersiz!");
             return;
         }
+        if (hedefYonetici.hayvanGorseli == null)
+        {
+            Debug.LogError("[TahminGorselKalibratoru] Hedef Yonetici'nin Hayvan Gorseli alanı boş!");
+            return;
+        }
+
+        RectTransform referansAlan = hedefYonetici.hayvanGorseli.rectTransform;
 
         float referansGenislik = referansAlan.rect.width * referansAlan.lossyScale.x;
         float efektifGenislik = gorselTransform.rect.width * gorselTransform.lossyScale.x;
@@ -60,16 +57,11 @@ public class TahminGorselKalibratoru : MonoBehaviour
         }
 
         float olcek = efektifGenislik / referansGenislik;
-
-        if (kartIcinMi)
-            hedefYonetici.hayvanlar[hedefHayvanIndex].secenekGorselOlcek = olcek;
-        else
-            hedefYonetici.hayvanlar[hedefHayvanIndex].gorselOlcek = olcek;
+        hedefYonetici.hayvanlar[hedefHayvanIndex].gorselOlcek = olcek;
 
         EditorUtility.SetDirty(hedefYonetici);
         Debug.Log("[TahminGorselKalibratoru] hayvan[" + hedefHayvanIndex + "] (" +
-            hedefYonetici.hayvanlar[hedefHayvanIndex].hayvanAdi + ") için " +
-            (kartIcinMi ? "secenekGorselOlcek" : "gorselOlcek") + " = " + olcek +
+            hedefYonetici.hayvanlar[hedefHayvanIndex].hayvanAdi + ") için gorselOlcek = " + olcek +
             " olarak kaydedildi. ŞİMDİ SAHNEYİ KAYDET (Ctrl+S) yoksa kaybolur!");
     }
 #endif

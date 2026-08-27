@@ -63,11 +63,12 @@ public class EslesmeYemekKarti : MonoBehaviour, IBeginDragHandler, IDragHandler,
         if (hedefinUzerinde && dogruMu)
         {
             // DOĞRU EŞLEŞME!
+            // Kilitliyoruz ama Destroy etmiyoruz - manager DogruEslesme() içinde
+            // TemizleYemekKartlari() ile bu kart dahil tüm kalan kartları temizliyor
+            // (cümle efekti sırasında başka kart sürüklenemesin diye).
             kilitliMi = true;
             gorselBileseni.raycastTarget = false;
-            yonetici.DogruEslesme();
-            // Bir sonraki tur zaten tüm kartları temizleyecek, ama garantiye alalım
-            Destroy(gameObject);
+            yonetici.DogruEslesme(gorselBileseni.sprite);
             return;
         }
 

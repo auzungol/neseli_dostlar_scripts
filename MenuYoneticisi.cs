@@ -6,6 +6,9 @@ public class MenuYoneticisi : MonoBehaviour
 {
     [Header("Oyun Yöneticileri")]
     public HafizaOyunuYoneticisi hafizaYoneticisi;
+    public YapbozYoneticisi yapbozYoneticisi;   // YENİ: REKOR yazısını dil değişince güncellemek için
+    public TahminYoneticisi tahminYoneticisi;   // YENİ: REKOR yazısını dil değişince güncellemek için
+    public PauseController pauseController;     // YENİ: Duraklatma menüsü yazılarını dil değişince güncellemek için
     
     [Header("Grup ve Paneller")]
     public GameObject anaMenuGrubu;
@@ -25,8 +28,23 @@ public class MenuYoneticisi : MonoBehaviour
     public TextMeshProUGUI yapbozYazisi;
     public TextMeshProUGUI yemekYazisi;
 
+    [Header("Dil Değişecek İpucu Buton Yazıları (TMP)")]
+    [Tooltip("Yapboz modundaki İPUCU butonunun İÇİNDEKİ TMP Text objesi")]
+    public TextMeshProUGUI ipucuButonuYazisi;
+    [Tooltip("Bilmece modundaki SONRAKİ İPUCU butonunun İÇİNDEKİ TMP Text objesi")]
+    public TextMeshProUGUI sonrakiIpucuButonuYazisi;
+    [Tooltip("Oyun seçim ekranındaki mod carousel'inin SEÇ butonunun İÇİNDEKİ TMP Text objesi")]
+    public TextMeshProUGUI modSecYazisi;
+    [Tooltip("Yapboz'daki hayvan seçim carousel'inin SEÇ butonunun İÇİNDEKİ TMP Text objesi")]
+    public TextMeshProUGUI yapbozSecYazisi;
+
     [Header("Dil Bayrak Görselleri")]
     public Image dilButonuGorseli;
+    [Tooltip("Dil butonunun Button component'i - oyun içi duraklatma menüsünden Ayarlar açıldığında " +
+             "bunu kilitleyip soluklaştırıyoruz (dil o an değiştirilirse ekrandaki yazılar yarım " +
+             "kalabiliyor, sonraki tura kadar güncellenmiyor - bu yüzden mod içindeyken dil " +
+             "değiştirilmesini tamamen engelliyoruz).")]
+    public Button dilButonu;
     public Sprite turkceBayrak;
     public Sprite ingilizceBayrak;
 
@@ -70,8 +88,36 @@ public class MenuYoneticisi : MonoBehaviour
         anaMenuGrubu.SetActive(true);    
     }
 
-    public void SecenekleriAc() { seceneklerPaneli.SetActive(true); }
+    public void SecenekleriAc()
+    {
+        // Ana menüden normal açılışta dil butonu HER ZAMAN aktif olmalı -
+        // bir önceki açılış duraklatma menüsünden olup kilitlenmiş olabilir, sıfırlıyoruz.
+        DilButonunuKilitle(false);
+        seceneklerPaneli.SetActive(true);
+    }
     public void SecenekleriKapat() { seceneklerPaneli.SetActive(false); }
+
+    // YENİ: Oyun içi duraklatma menüsünden Ayarlar açılırken PauseController bunu çağırır.
+    // kilitli=true -> buton tıklanamaz + yarı saydam. kilitli=false -> normal, tam opak.
+    public void DilButonunuKilitle(bool kilitli)
+    {
+        if (dilButonu != null)
+            dilButonu.interactable = !kilitli;
+
+        if (dilButonuGorseli != null)
+        {
+            Color renk = dilButonuGorseli.color;
+            renk.a = kilitli ? 0.4f : 1f;
+            dilButonuGorseli.color = renk;
+        }
+
+        if (dilYazisi != null)
+        {
+            Color renk = dilYazisi.color;
+            renk.a = kilitli ? 0.4f : 1f;
+            dilYazisi.color = renk;
+        }
+    }
 
     public void DiliDegistir()
     {
@@ -91,6 +137,11 @@ public class MenuYoneticisi : MonoBehaviour
 
             baslaYazisi.text = "BAŞLA";
             seceneklerYazisi.text = "SEÇENEKLER";
+
+            if (ipucuButonuYazisi != null) ipucuButonuYazisi.text = "İPUCU";
+            if (sonrakiIpucuButonuYazisi != null) sonrakiIpucuButonuYazisi.text = "SONRAKİ İPUCU";
+            if (modSecYazisi != null) modSecYazisi.text = "SEÇ";
+            if (yapbozSecYazisi != null) yapbozSecYazisi.text = "SEÇ";
 
             dilButonuGorseli.sprite = turkceBayrak;
 
@@ -112,6 +163,11 @@ public class MenuYoneticisi : MonoBehaviour
             baslaYazisi.text = "START";
             seceneklerYazisi.text = "OPTIONS";
 
+            if (ipucuButonuYazisi != null) ipucuButonuYazisi.text = "HINT";
+            if (sonrakiIpucuButonuYazisi != null) sonrakiIpucuButonuYazisi.text = "NEXT HINT";
+            if (modSecYazisi != null) modSecYazisi.text = "SELECT";
+            if (yapbozSecYazisi != null) yapbozSecYazisi.text = "SELECT";
+
             dilButonuGorseli.sprite = ingilizceBayrak;
 
             // Logoyu İngilizce Yap!
@@ -123,6 +179,25 @@ public class MenuYoneticisi : MonoBehaviour
         if (hafizaYoneticisi != null)
         {
             hafizaYoneticisi.EnIyiSureyiEkranaYaz();
+        }
+
+        // YENİ: Yapboz ve Bilmece'nin REKOR yazıları da aynı şekilde anında güncellensin -
+        // önceden sadece hafizaYoneticisi çağrılıyordu, oyun ortasında dil değiştirilince
+        // bu ikisinin REKOR yazısı bir sonraki oyuna kadar eski dilde takılı kalıyordu.
+        if (yapbozYoneticisi != null)
+        {
+            yapbozYoneticisi.EnIyiSureyiEkranaYaz();
+        }
+        if (tahminYoneticisi != null)
+        {
+            tahminYoneticisi.EnIyiSureyiEkranaYaz();
+        }
+
+        // YENİ: Duraklatma menüsündeki tüm yazılar (OYUN DURAKLATILDI, DEVAM ET,
+        // AYARLAR, ANA MENÜ) da anında güncellensin.
+        if (pauseController != null)
+        {
+            pauseController.DiliGuncelle();
         }
     }
 
