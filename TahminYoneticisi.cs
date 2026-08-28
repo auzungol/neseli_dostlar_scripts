@@ -279,6 +279,37 @@ public class TahminYoneticisi : MonoBehaviour
         return hayvan.ipuclari;
     }
 
+    // YENİ: Doğru cevap sonrası seçenek kartlarını ANİDEN yok etmek yerine, küçülerek
+    // (scale -> 0) kaybolmalarını sağlayan animasyon. Bittiğinde asıl temizliği
+    // TemizleSecenekKartlari() yapıyor (Destroy + liste temizliği).
+    IEnumerator SecenekleriKaybet()
+    {
+        List<Transform> kartTransformlari = new List<Transform>();
+        List<Vector3> baslangicOlcekler = new List<Vector3>();
+        foreach (AktifSecenek secenek in aktifSecenekler)
+        {
+            if (secenek.kart == null) continue;
+            kartTransformlari.Add(secenek.kart.transform);
+            baslangicOlcekler.Add(secenek.kart.transform.localScale);
+        }
+
+        float sure = 0.2f;
+        float gecen = 0f;
+        while (gecen < sure)
+        {
+            gecen += Time.deltaTime;
+            float t = gecen / sure;
+            for (int i = 0; i < kartTransformlari.Count; i++)
+            {
+                if (kartTransformlari[i] == null) continue;
+                kartTransformlari[i].localScale = Vector3.Lerp(baslangicOlcekler[i], Vector3.zero, t);
+            }
+            yield return null;
+        }
+
+        TemizleSecenekKartlari();
+    }
+
     void TemizleSecenekKartlari()
     {
         foreach (AktifSecenek secenek in aktifSecenekler)
@@ -326,6 +357,14 @@ public class TahminYoneticisi : MonoBehaviour
     // Doğru seçeneğe tıklanınca TahminSecenekKarti bunu çağırır
     public void DogruTahmin()
     {
+        // FIX: Ödül animasyonu (hayvan ortada zıplayarak büyürken) süresince süre akışı
+        // duraklasın, seçenek kartları da ARTIK ANİDEN DEĞİL küçülerek/animasyonlu şekilde
+        // kaybolsun - yoksa animasyon süresince hem süre akmaya devam ediyordu hem de eski
+        // seçenekler ortadaki büyüyen hayvanla üst üste biniyordu. Süre, bir sonraki hayvan
+        // gösterildiğinde tekrar başlatılıyor (OduluGosterVeDevamEt içinde).
+        oyunDevamEdiyor = false;
+        StartCoroutine(SecenekleriKaybet());
+
         int yildiz = aktifIpucuIndex <= 1 ? 3 : (aktifIpucuIndex == 2 ? 2 : 1);
         toplamYildiz += yildiz;
 
@@ -387,6 +426,10 @@ public class TahminYoneticisi : MonoBehaviour
         }
         else
         {
+            // Sıradaki hayvan (ve onunla birlikte yeni seçenek kartları) gösterilmeden hemen
+            // önce süreyi tekrar başlatıyoruz - OyunuBitir() zaten kendi içinde
+            // oyunDevamEdiyor'u false yaptığı için oyun bittiyse buraya girilmiyor.
+            oyunDevamEdiyor = true;
             SiradakiHayvaniGoster();
         }
     }
