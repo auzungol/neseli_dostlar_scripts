@@ -19,8 +19,11 @@ public class PauseController : MonoBehaviour
     public TextMeshProUGUI ayarlarYazisi;
     [Tooltip("\"ANA MENÜ\" buton yazısı")]
     public TextMeshProUGUI anaMenuYazisi;
+    [Tooltip("\"YENİDEN BAŞLAT\" buton yazısı")]
+    public TextMeshProUGUI yenidenBaslatYazisi;
 
-    private System.Action anaMenuAksiyonu; // O an hangi modun "Ana Menü'ye Dön" mantığı çalışacak
+    private System.Action anaMenuAksiyonu;      // O an hangi modun "Ana Menü'ye Dön" mantığı çalışacak
+    private System.Action yenidenBaslatAksiyonu; // O an hangi modun "Yeniden Başlat" mantığı çalışacak
 
     void Awake()
     {
@@ -32,10 +35,13 @@ public class PauseController : MonoBehaviour
         DiliGuncelle();
     }
 
-    // Her mod, kendi GeriButonunaBasildi/OyunSecimineDon metodunu buraya "callback" olarak yollar
-    public void Ac(System.Action modunGeriDonusu)
+    // Her mod, kendi GeriButonunaBasildi/OyunSecimineDon VE yeniden başlatma mantığını
+    // buraya "callback" olarak yollar. yenidenBaslat opsiyonel - null geçilirse
+    // YenidenBaslatButonunaBasildi() sessizce hiçbir şey yapmaz.
+    public void Ac(System.Action modunGeriDonusu, System.Action yenidenBaslat = null)
     {
         anaMenuAksiyonu = modunGeriDonusu;
+        yenidenBaslatAksiyonu = yenidenBaslat;
         if (pauseMenuPanel != null)
         {
             pauseMenuPanel.SetActive(true);
@@ -79,6 +85,14 @@ public class PauseController : MonoBehaviour
         anaMenuAksiyonu?.Invoke(); // o modun kendi geri dönüş mantığını çalıştırır
     }
 
+    // --- YENİ: "YENİDEN BAŞLAT" butonu - seçili moddaki oyunu baştan başlatır ---
+    public void YenidenBaslatButonunaBasildi()
+    {
+        Time.timeScale = 1f; // oyun kurulumu/geçiş animasyonu düzgün oynasın diye MUTLAKA resetlenmeli
+        if (pauseMenuPanel != null) pauseMenuPanel.SetActive(false);
+        yenidenBaslatAksiyonu?.Invoke(); // o modun kendi "...ModunaGirildi" (ya da eşdeğeri) metodunu tekrar çalıştırır
+    }
+
     // --- YENİ: MenuYoneticisi.DiliDegistir() bunu çağırır, dil değişince
     //           duraklatma menüsündeki tüm yazılar anında güncellensin diye.
     //           Panel o an kapalı (inactive) olsa bile .text ataması çalışır,
@@ -91,6 +105,7 @@ public class PauseController : MonoBehaviour
             if (devamEtYazisi != null) devamEtYazisi.text = "DEVAM ET";
             if (ayarlarYazisi != null) ayarlarYazisi.text = "AYARLAR";
             if (anaMenuYazisi != null) anaMenuYazisi.text = "ANA MENÜ";
+            if (yenidenBaslatYazisi != null) yenidenBaslatYazisi.text = "YENİDEN BAŞLAT";
         }
         else
         {
@@ -98,6 +113,7 @@ public class PauseController : MonoBehaviour
             if (devamEtYazisi != null) devamEtYazisi.text = "RESUME";
             if (ayarlarYazisi != null) ayarlarYazisi.text = "SETTINGS";
             if (anaMenuYazisi != null) anaMenuYazisi.text = "MAIN MENU";
+            if (yenidenBaslatYazisi != null) yenidenBaslatYazisi.text = "RESTART";
         }
     }
 }

@@ -18,6 +18,9 @@ public class HafizaOyunuYoneticisi : MonoBehaviour
     public TextMeshProUGUI tebriklerSureYazisi;   // YENİ: Bitiş ekranındaki skor
     public TextMeshProUGUI tebriklerBaslikYazisi; // YENİ: "TEBRİKLER!" yazısı
     public TextMeshProUGUI tebriklerButonYazisi;  // YENİ: "DEVAM" butonu yazısı
+    [Tooltip("Tebrikler ekranında REKOR yazısı - Yapboz'daki gibi eklendi. Sağdaki enIyiSureYazisi " +
+             "ile AYNI formatı kullanır.")]
+    public TextMeshProUGUI tebriklerRekorYazisi;
 
     [Header("Hayvan Listesi (8 Tane Sürükle)")]
     public Sprite[] hayvanGorselleri;
@@ -282,6 +285,13 @@ public class HafizaOyunuYoneticisi : MonoBehaviour
             tebriklerSureYazisi.text = sureMetni + gecenSure.ToString("F1") + saniyeMetni;
         }
 
+        if (tebriklerRekorYazisi != null)
+        {
+            string rekorKelimesi = MenuYoneticisi.turkceMi ? "REKOR: " : "BEST: ";
+            string saniyeKisaltma = MenuYoneticisi.turkceMi ? " SN" : " S";
+            tebriklerRekorYazisi.text = rekorKelimesi + enIyiSure.ToString("F1") + saniyeKisaltma;
+        }
+
         if (tebriklerPaneli != null)
             tebriklerPaneli.SetActive(true);
     }
@@ -333,6 +343,11 @@ public class HafizaOyunuYoneticisi : MonoBehaviour
 
     public void DuraklatButonunaBasildi()
     {
-        PauseController.Instance.Ac(GeriButonunaBasildi);
+        // FIX: Duraklatınca oyunDevamEdiyor'u da false yapıyoruz - önceden sadece
+        // Time.timeScale=0 ile duruyordu, "mantıksal olarak" hâlâ true kalıyordu.
+        // Yeniden Başlat sırasında bulutlar kapanana kadarki kısa pencerede Update()
+        // eski süre değerini artırmaya devam ediyordu, bu bug'ı çözer.
+        oyunDevamEdiyor = false;
+        PauseController.Instance.Ac(GeriButonunaBasildi, HafizaModunaGirildi);
     }
 }

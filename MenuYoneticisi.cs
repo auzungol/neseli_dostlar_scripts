@@ -21,6 +21,8 @@ public class MenuYoneticisi : MonoBehaviour
     public TextMeshProUGUI sesYazisi;
     public TextMeshProUGUI baslaYazisi;
     public TextMeshProUGUI seceneklerYazisi;
+    public TextMeshProUGUI ayarlarYazisi;
+
 
     [Header("Dil Değişecek Mod Yazıları (TMP)")]
     public TextMeshProUGUI hafizaYazisi;
@@ -129,6 +131,7 @@ public class MenuYoneticisi : MonoBehaviour
             dilYazisi.text = "DİL";
             muzikYazisi.text = "MÜZİK";
             sesYazisi.text = "SES EFEKTLERİ";
+            ayarlarYazisi.text = "AYARLAR";
 
             hafizaYazisi.text = "HAFIZA";
             quizYazisi.text = "BİLMECE";
@@ -154,6 +157,7 @@ public class MenuYoneticisi : MonoBehaviour
             dilYazisi.text = "LANGUAGE";
             muzikYazisi.text = "MUSIC";
             sesYazisi.text = "SOUND FX";
+            ayarlarYazisi.text = "OPTIONS"; 
 
             hafizaYazisi.text = "MEMORY CARDS";
             quizYazisi.text = "QUIZ";

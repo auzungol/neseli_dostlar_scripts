@@ -79,6 +79,11 @@ public class YapbozYoneticisi : MonoBehaviour
     [Range(0f, 1f)] public float yuvaBaslangicAlfasi = 0.35f;
     [Range(0f, 1f)] public float ipucuOnizlemeAlfasi = 0.9f;
     public float ipucuOnizlemeSuresi = 2.5f;
+    [Range(0.3f, 1f)]
+    [Tooltip("Havuzda beklerken parçaların, gerçek (kalibre edilmiş) boyutlarına göre ne kadar " +
+             "küçük görüneceği - 1 = gerçek boyut, 0.75 = %25 küçük. Sürüklemeye başlayınca " +
+             "gerçek boyutuna büyürler.")]
+    public float havuzParcaOlcegi = 0.75f;
 
     [Header("Ses Efektleri")]
     public AudioSource sesKaynagi;
@@ -102,6 +107,9 @@ public class YapbozYoneticisi : MonoBehaviour
 
     private int secilenSatirGecici;
     private int secilenSutunGecici;
+
+    // YENİ: "Yeniden Başlat" için son seçilen hayvanı hatırlıyoruz
+    private int sonSecilenHayvanIndex;
 
     void Update()
     {
@@ -172,6 +180,10 @@ public class YapbozYoneticisi : MonoBehaviour
 
     public void HayvanSecildi(int hayvanIndex)
     {
+        // YENİ: "Yeniden Başlat" butonunun hangi hayvanla tekrar başlayacağını bilmesi için
+        // son seçilen hayvanı hatırlıyoruz.
+        sonSecilenHayvanIndex = hayvanIndex;
+
         // Bulut geçişiyle sarmaladık - SEÇ'e basar basmaz bulutlar ANINDA kapanmaya başlasın,
         // altında OyunuBaslat()'ın ağır işlemleri (parça/yuva oluşturma) örtülü kalsın.
         if (GecisYoneticisi.Instance != null)
@@ -380,7 +392,7 @@ public class YapbozYoneticisi : MonoBehaviour
         rt.anchoredPosition = HavuzSlotKonumuGetir(slotIndex);
 
         YapbozParcasi parcaScript = yeniParcaObje.GetComponent<YapbozParcasi>();
-        parcaScript.ParcayiKur(veri.sprite, veri.hedefKonum, this, slotIndex);
+        parcaScript.ParcayiKur(veri.sprite, veri.hedefKonum, this, slotIndex, havuzParcaOlcegi);
 
         if (MenuYoneticisi.sesEfektleriAcik && parcaAlmaSesi != null)
             sesKaynagi.PlayOneShot(parcaAlmaSesi);
@@ -628,6 +640,11 @@ public class YapbozYoneticisi : MonoBehaviour
     {
         // DİKKAT: artık GeriButonunaBasildi değil, OyunSecimineDon çağrılıyor -
         // duraklatma menüsündeki "Ana Menü'ye Dön" butonu doğrudan mod seçim ekranına gitsin diye.
-        PauseController.Instance.Ac(OyunSecimineDon);
+        // Yeniden Başlat, son seçilen hayvanla HayvanSecildi'yi tekrar çağırır.
+        // FIX: Duraklatınca oyunDevamEdiyor'u da false yapıyoruz - Yeniden Başlat sırasında
+        // bulutlar kapanana kadarki kısa pencerede Update() eski süre değerini artırmaya
+        // devam etmesin diye.
+        oyunDevamEdiyor = false;
+        PauseController.Instance.Ac(OyunSecimineDon, () => HayvanSecildi(sonSecilenHayvanIndex));
     }
 }

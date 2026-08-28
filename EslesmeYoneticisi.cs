@@ -474,6 +474,10 @@ public class EslesmeYoneticisi : MonoBehaviour
     // --- Duraklatma menüsündeki "Ana Menü'ye Dön" butonunun çağırdığı metod ---
     public void DuraklatButonunaBasildi()
     {
-        PauseController.Instance.Ac(GeriButonunaBasildi);
+        // FIX: Duraklatınca oyunDevamEdiyor'u da false yapıyoruz - önceden sadece
+        // Time.timeScale=0 ile duruyordu. Yeniden Başlat sırasında bulutlar kapanana
+        // kadarki kısa pencerede Update() eski süre değerini artırmaya devam ediyordu.
+        oyunDevamEdiyor = false;
+        PauseController.Instance.Ac(GeriButonunaBasildi, EslesmeModunaGirildi);
     }
 }
