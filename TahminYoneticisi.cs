@@ -65,6 +65,8 @@ public class TahminYoneticisi : MonoBehaviour
     public TextMeshProUGUI tebriklerButonYazisi;
     public TextMeshProUGUI tebriklerSureYazisi;
     public TextMeshProUGUI tebriklerYildizYazisi;
+    [Tooltip("Tebrikler ekranında REKOR yazısı - diğer modlarla tutarlı olsun diye eklendi.")]
+    public TextMeshProUGUI tebriklerRekorYazisi;
 
     [Header("Hayvanlar (8 Tane)")]
     public TahminHayvani[] hayvanlar;
@@ -436,6 +438,13 @@ public class TahminYoneticisi : MonoBehaviour
             int maksYildiz = hayvanlar.Length * 3;
             string yildizMetni = MenuYoneticisi.turkceMi ? "TOPLAM YILDIZ: " : "TOTAL STARS: ";
             tebriklerYildizYazisi.text = yildizMetni + toplamYildiz + " / " + maksYildiz;
+        }
+
+        if (tebriklerRekorYazisi != null)
+        {
+            string rekorKelimesi = MenuYoneticisi.turkceMi ? "REKOR: " : "BEST: ";
+            string saniyeKisaltma = MenuYoneticisi.turkceMi ? " SN" : " S";
+            tebriklerRekorYazisi.text = rekorKelimesi + enIyiSure.ToString("F1") + saniyeKisaltma;
         }
 
         if (tebriklerPaneli != null)

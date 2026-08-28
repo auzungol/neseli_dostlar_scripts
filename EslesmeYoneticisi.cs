@@ -69,6 +69,8 @@ public class EslesmeYoneticisi : MonoBehaviour
     public TextMeshProUGUI tebriklerSureYazisi;   // Bitiş ekranındaki skor
     public TextMeshProUGUI tebriklerBaslikYazisi;
     public TextMeshProUGUI tebriklerButonYazisi;
+    [Tooltip("Tebrikler ekranında REKOR yazısı - diğer modlarla tutarlı olsun diye eklendi.")]
+    public TextMeshProUGUI tebriklerRekorYazisi;
 
     [Header("Hayvan-Yemek Eşleşmeleri (8 Tane)")]
     public HayvanYemekEslesmesi[] eslesmeler;
@@ -415,10 +417,16 @@ public class EslesmeYoneticisi : MonoBehaviour
             tebriklerSureYazisi.text = sureMetni + gecenSure.ToString("F1") + saniyeMetni;
         }
 
+        if (tebriklerRekorYazisi != null)
+        {
+            string rekorKelimesi = MenuYoneticisi.turkceMi ? "REKOR: " : "BEST: ";
+            string saniyeKisaltma = MenuYoneticisi.turkceMi ? " SN" : " S";
+            tebriklerRekorYazisi.text = rekorKelimesi + enIyiSure.ToString("F1") + saniyeKisaltma;
+        }
+
         if (tebriklerPaneli != null) tebriklerPaneli.SetActive(true);
 
         if (duraklatButonu != null) duraklatButonu.SetActive(false);
-        if (sagBilgiPaneli != null) sagBilgiPaneli.SetActive(false);
     }
 
     public void TebriklerTamamButonunaBasildi()
