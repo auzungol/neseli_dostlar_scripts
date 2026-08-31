@@ -14,6 +14,10 @@ public class GeriSayimYoneticisi : MonoBehaviour
     [Header("Bağlantılar")]
     [Tooltip("Sayıyı gösteren TMP Text - '3','2','1','BAŞLA!' sırayla buraya yazılacak.")]
     public TextMeshProUGUI sayiYazisi;
+    [Tooltip("YENİ: Geri sayım sırasında sayının ALTINDA gösterilen, moda özel kısa talimat " +
+             "yazısı (örn. 'Kartlara tıklayarak eşleşen çiftleri bulun'). Boş bırakılırsa ya " +
+             "da GeriSayimBaslat()'a talimat verilmezse gizli kalır, hiçbir şeyi bozmaz.")]
+    public TextMeshProUGUI talimatYazisi;
     [Tooltip("Tüm ekranı kaplayan, tıklamaları engelleyen katman (Image, Raycast Target AÇIK). " +
              "Rengi tamamen şeffaf olabilir ya da hafif karartma yapabilirsiniz, tercihiniz.")]
     public GameObject engelleyiciKatman;
@@ -31,20 +35,29 @@ public class GeriSayimYoneticisi : MonoBehaviour
     {
         Instance = this;
         if (sayiYazisi != null) sayiYazisi.gameObject.SetActive(false);
+        if (talimatYazisi != null) talimatYazisi.gameObject.SetActive(false);
         if (engelleyiciKatman != null) engelleyiciKatman.SetActive(false);
     }
 
     // Dışarıdan çağrılacak ANA metod. bittiginde = geri sayım tamamlanınca çalışacak kod
     // (süre sayacını başlatma, tıklanabilirliği açma vs.)
-    public void GeriSayimBaslat(Action bittiginde)
+    // YENİ: talimatMetni opsiyonel - her mod kendi kısa "nasıl oynanır" cümlesini geçebilir.
+    // Verilmezse (null/boş) talimat yazısı hiç gösterilmez, eski davranış aynen korunur.
+    public void GeriSayimBaslat(Action bittiginde, string talimatMetni = null)
     {
-        StartCoroutine(GeriSayimCoroutine(bittiginde));
+        StartCoroutine(GeriSayimCoroutine(bittiginde, talimatMetni));
     }
 
-    IEnumerator GeriSayimCoroutine(Action bittiginde)
+    IEnumerator GeriSayimCoroutine(Action bittiginde, string talimatMetni)
     {
         if (engelleyiciKatman != null) engelleyiciKatman.SetActive(true);
         if (sayiYazisi != null) sayiYazisi.gameObject.SetActive(true);
+
+        if (talimatYazisi != null && !string.IsNullOrEmpty(talimatMetni))
+        {
+            talimatYazisi.text = talimatMetni;
+            talimatYazisi.gameObject.SetActive(true);
+        }
 
         string[] sayilar = { "3", "2", "1" };
         foreach (string sayi in sayilar)
@@ -54,6 +67,7 @@ public class GeriSayimYoneticisi : MonoBehaviour
         yield return SayiyiGosterVeZonkla(baslaMetni, baslaGosterimSuresi);
 
         if (sayiYazisi != null) sayiYazisi.gameObject.SetActive(false);
+        if (talimatYazisi != null) talimatYazisi.gameObject.SetActive(false);
         if (engelleyiciKatman != null) engelleyiciKatman.SetActive(false);
 
         bittiginde?.Invoke();

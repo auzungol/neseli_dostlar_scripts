@@ -85,7 +85,9 @@ public class HafizaOyunuYoneticisi : MonoBehaviour
                     {
                         GeriSayimYoneticisi.Instance.GeriSayimBaslat(() => {
                             oyunDevamEdiyor = true;
-                        });
+                        }, MenuYoneticisi.turkceMi
+                            ? "Kartlara tıklayarak eşleşen çiftleri bulun"
+                            : "Tap the cards to find the matching pairs");
                     }
                     else
                     {

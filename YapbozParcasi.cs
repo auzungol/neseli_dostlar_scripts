@@ -85,6 +85,10 @@ public class YapbozParcasi : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
 
         transform.SetAsLastSibling();
 
+        // YENİ: "Parça tutma" sesi artık TAM BURADA - parçaya gerçekten dokunup
+        // sürüklemeye başlanınca. Önceden spawn anında çalıyordu, oyuncu dokunmadan.
+        yonetici.ParcaTutuldu();
+
         // YENİ: Havuzdaki küçük görünümden (havuzOlcegi), sürüklenirken GERÇEK boyutuna
         // (1.08x hafif "elde tutuluyor" vurgusuyla) yumuşakça büyüsün diye.
         if (aktifOlcekAnimasyonu != null) StopCoroutine(aktifOlcekAnimasyonu);

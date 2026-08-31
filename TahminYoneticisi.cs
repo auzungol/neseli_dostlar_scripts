@@ -83,6 +83,14 @@ public class TahminYoneticisi : MonoBehaviour
     public AudioClip alkisSesi;
     public AudioClip oyunBittiSesi;
 
+    [Header("Ses Seviyesi Dengeleme")]
+    [Tooltip("'fail' ses dosyasının kendisi diğerlerine (correct, theme) göre çok kısık kaydedilmiş - " +
+             "dosyayı değiştirmeden PlayOneShot'un volumeScale'i ile telafi ediyoruz. 1 = orijinal " +
+             "seviye, 2 = 2 katı yüksek.")]
+    [Range(1f, 3f)] public float yanlisSesiSesSeviyesi = 2f;
+    [Tooltip("'end' ses dosyası da diğerlerine göre kısık - aynı şekilde telafi ediliyor.")]
+    [Range(1f, 3f)] public float oyunBittiSesiSesSeviyesi = 1.6f;
+
     private List<int> hayvanSirasi = new List<int>();
     private int aktifIndex;
     private int aktifIpucuIndex; // Şu ana kadar gösterilen ipucu sayısı (1'den başlar)
@@ -140,7 +148,9 @@ public class TahminYoneticisi : MonoBehaviour
                     {
                         GeriSayimYoneticisi.Instance.GeriSayimBaslat(() => {
                             oyunDevamEdiyor = true;
-                        });
+                        }, MenuYoneticisi.turkceMi
+                            ? "Verilen ipuçlarına göre doğru hayvana tıklayın"
+                            : "Follow the clues and tap the right animal");
                     }
                     else
                     {
@@ -351,7 +361,7 @@ public class TahminYoneticisi : MonoBehaviour
     public void YanlisTahmin()
     {
         if (MenuYoneticisi.sesEfektleriAcik && yanlisSesi != null && sesKaynagi != null)
-            sesKaynagi.PlayOneShot(yanlisSesi);
+            sesKaynagi.PlayOneShot(yanlisSesi, yanlisSesiSesSeviyesi);
     }
 
     // Doğru seçeneğe tıklanınca TahminSecenekKarti bunu çağırır
@@ -453,7 +463,7 @@ public class TahminYoneticisi : MonoBehaviour
         oyunDevamEdiyor = false;
 
         if (MenuYoneticisi.sesEfektleriAcik && oyunBittiSesi != null && sesKaynagi != null)
-            sesKaynagi.PlayOneShot(oyunBittiSesi);
+            sesKaynagi.PlayOneShot(oyunBittiSesi, oyunBittiSesiSesSeviyesi);
 
         if (enIyiSure == 0f || gecenSure < enIyiSure)
         {

@@ -146,7 +146,9 @@ public class EslesmeYoneticisi : MonoBehaviour
                     {
                         GeriSayimYoneticisi.Instance.GeriSayimBaslat(() => {
                             oyunDevamEdiyor = true;
-                        });
+                        }, MenuYoneticisi.turkceMi
+                            ? "Doğru besini hayvanın üstüne sürükleyin"
+                            : "Drag the right food onto the animal");
                     }
                     else
                     {

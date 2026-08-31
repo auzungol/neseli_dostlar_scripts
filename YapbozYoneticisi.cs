@@ -201,7 +201,9 @@ public class YapbozYoneticisi : MonoBehaviour
                         GeriSayimYoneticisi.Instance.GeriSayimBaslat(() => {
                             // Geri sayım bitince süre sayacı GERÇEKTEN burada başlar.
                             oyunDevamEdiyor = true;
-                        });
+                        }, MenuYoneticisi.turkceMi
+                            ? "Doğru parçayı yapbozun ilgili yerine sürükleyin"
+                            : "Drag each piece to its correct spot in the puzzle");
                     }
                     else
                     {
@@ -295,6 +297,18 @@ public class YapbozYoneticisi : MonoBehaviour
         return havuzSlotKonumlari[slotIndex].anchoredPosition;
     }
 
+    // YENİ: Komşu parça/yuva sınırları neredeyse ama tam olarak aynı pikselde çakışmadığında
+    // (kalibrasyon verisindeki ondalıklı/küsuratlı değerler yüzünden) GPU'nun yarı-saydam/
+    // kesilmiş kenarları render ederken oluşturduğu titreşen "cızırtı" (moiré) efektini önler.
+    // DİKKAT: Kalibrasyon verisinin (konumlar[]/boyutlar[] dizileri, Inspector'daki sayılar)
+    // KENDİSİNE hiç dokunmuyoruz - sadece o değeri EKRANA UYGULARKEN en yakın tam piksele
+    // yuvarlıyoruz. Parça ile karşılık gelen yuva aynı ham veriden geldiği için ikisi de
+    // AYNI şekilde yuvarlanınca birebir aynı piksele oturuyor, aradaki küsuratlı fark kayboluyor.
+    static Vector2 PikseleYuvarla(Vector2 deger)
+    {
+        return new Vector2(Mathf.Round(deger.x), Mathf.Round(deger.y));
+    }
+
     void MasayiTemizle()
     {
         if (oyunAlani != null)
@@ -322,8 +336,8 @@ public class YapbozYoneticisi : MonoBehaviour
         {
             GameObject yeniYuva = Instantiate(yuvaPrefab, oyunAlani);
             RectTransform rt = yeniYuva.GetComponent<RectTransform>();
-            rt.sizeDelta = boyutlar[i];
-            rt.anchoredPosition = konumlar[i];
+            rt.sizeDelta = PikseleYuvarla(boyutlar[i]);
+            rt.anchoredPosition = PikseleYuvarla(konumlar[i]);
 
             Image img = yeniYuva.GetComponent<Image>();
             img.sprite = parcalar[i];
@@ -343,8 +357,8 @@ public class YapbozYoneticisi : MonoBehaviour
             bekleyenParcaKuyrugu.Add(new ParcaVerisi
             {
                 sprite = parcalar[i],
-                hedefKonum = konumlar[i],
-                boyut = boyutlar[i]
+                hedefKonum = PikseleYuvarla(konumlar[i]),
+                boyut = PikseleYuvarla(boyutlar[i])
             });
         }
 
@@ -394,11 +408,17 @@ public class YapbozYoneticisi : MonoBehaviour
         YapbozParcasi parcaScript = yeniParcaObje.GetComponent<YapbozParcasi>();
         parcaScript.ParcayiKur(veri.sprite, veri.hedefKonum, this, slotIndex, havuzParcaOlcegi);
 
-        if (MenuYoneticisi.sesEfektleriAcik && parcaAlmaSesi != null)
-            sesKaynagi.PlayOneShot(parcaAlmaSesi);
-
         aktifParcalar.Add(parcaScript);
         return true;
+    }
+
+    // YENİ: Parçaya gerçekten dokunup sürüklemeye başlanınca (YapbozParcasi.OnBeginDrag)
+    // çağrılır - önceden bu ses parça havuza SPAWN olur olmaz (ParcayiHavuzSlotunaYerlestir
+    // içinde) çalıyordu, yani oyuncu daha dokunmadan, oyun açılır açılmaz duyuluyordu.
+    public void ParcaTutuldu()
+    {
+        if (MenuYoneticisi.sesEfektleriAcik && parcaAlmaSesi != null)
+            sesKaynagi.PlayOneShot(parcaAlmaSesi);
     }
 
     public void ParcaYerlestirildi(YapbozParcasi parca)
